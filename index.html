@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>J.A.R.V.I.S. - Terra Realista</title>
+    <style>
+        /* --- ESTÉTICA TONY STARK --- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            color: #0ff;
+        }
+
+        #input_video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            object-fit: cover;
+            transform: scaleX(-1); /* Espelhar webcam */
+            z-index: 0;
+            opacity: 0.4; /* Mais escuro para destacar o holograma */
+            filter: contrast(1.2) grayscale(0.4) brightness(0.5);
+        }
+
+        #output_canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2; pointer-events: none;
+        }
+
+        /* HUD FLUTUANTE (Rosto) */
+        #face-hud {
+            position: absolute;
+            width: 220px;
+            padding: 10px;
+            border-left: 2px solid #0ff;
+            background: rgba(0, 20, 40, 0.7);
+            backdrop-filter: blur(2px);
+            display: none;
+            box-shadow: 5px 0 15px rgba(0, 255, 255, 0.1);
+        }
+
+        .hud-text {
+            font-size: 12px;
+            line-height: 1.4;
+            text-shadow: 0 0 2px #0ff;
+        }
+
+        /* ELEMENTOS DECORATIVOS */
+        .reticle {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 60px; height: 60px;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 50%;
+        }
+        .reticle::after {
+            content: '';
+            position: absolute; top: -5px; left: 50%;
+            width: 2px; height: 10px; background: #0ff;
+            transform: translateX(-50%);
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: #000; border: 1px solid #0ff;
+            padding: 20px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <video id="input_video" playsinline></video>
+    <canvas id="output_canvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="reticle"></div>
+        
+        <div id="face-hud">
+            <div class="hud-text">ID: STARK_SECURE</div>
+            <div class="hud-text" style="color:lime">TRACKING ACTIVE</div>
+            <div style="height:2px; background:#0ff; width:100%; margin:5px 0;"></div>
+            <div class="hud-text">BPM: <span id="bpm-val">80</span></div>
+            <div class="hud-text">ALTITUDE: <span id="alt-val">10m</span></div>
+            <div class="hud-text" style="font-size:10px; opacity:0.8; margin-top:5px">
+                COORDS: <span id="coords-val">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading">CARREGANDO TEXTURAS E I.A...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+
+        // --- ELEMENTOS DO DOM ---
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const faceHud = document.getElementById('face-hud');
+        const loadingScreen = document.getElementById('loading');
+
+        // --- CONFIGURAÇÃO THREE.JS ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 6; // Afastar um pouco para ver o planeta inteiro
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        
+        // Tone mapping para deixar mais cinematográfico
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+
+        // --- CRIANDO A TERRA ---
+        const earthGroup = new THREE.Group();
+        earthGroup.position.x = -2.0; // Posição à esquerda (estilo HUD)
+        scene.add(earthGroup);
+
+        const textureLoader = new THREE.TextureLoader();
+        
+        // URLs de Texturas (Fontes públicas comuns para ThreeJS)
+        const mapUrl = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
+        const bumpUrl = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
+        const cloudUrl = 'https://unpkg.com/three-globe/example/img/earth-clouds.png';
+
+        // 1. Esfera Terrestre
+        const earthGeo = new THREE.SphereGeometry(1.5, 64, 64);
+        const earthMat = new THREE.MeshPhongMaterial({
+            map: textureLoader.load(mapUrl),
+            bumpMap: textureLoader.load(bumpUrl),
+            bumpScale: 0.05,
+            specular: new THREE.Color('grey'),
+            shininess: 10
+        });
+        const earth = new THREE.Mesh(earthGeo, earthMat);
+        earthGroup.add(earth);
+
+        // 2. Camada de Nuvens (Um pouco maior que a Terra)
+        const cloudGeo = new THREE.SphereGeometry(1.53, 64, 64);
+        const cloudMat = new THREE.MeshPhongMaterial({
+            map: textureLoader.load(cloudUrl),
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending, // Faz brilhar um pouco
+            side: THREE.DoubleSide
+        });
+        const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+        earthGroup.add(clouds);
+
+        // 3. Efeito de Atmosfera (Glow Azulado)
+        const atmoGeo = new THREE.SphereGeometry(1.6, 64, 64);
+        const atmoMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.1,
+            side: THREE.BackSide // Renderiza por dentro para dar efeito de halo
+        });
+        const atmosphere = new THREE.Mesh(atmoGeo, atmoMat);
+        earthGroup.add(atmosphere);
+
+        // --- ILUMINAÇÃO ---
+        const ambientLight = new THREE.AmbientLight(0x333333); // Luz ambiente suave
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        sunLight.position.set(5, 3, 5); // Sol vindo da direita superior
+        scene.add(sunLight);
+
+        // Luz de realce azulada (O "look" Tony Stark)
+        const rimLight = new THREE.SpotLight(0x00ffff, 2);
+        rimLight.position.set(-5, 5, 2);
+        scene.add(rimLight);
+
+
+        // --- MEDIAPIPE SETUP ---
+        let isFaceLoaded = false;
+        let isHandsLoaded = false;
+
+        function checkLoaded() {
+            if(isFaceLoaded && isHandsLoaded) loadingScreen.style.display = 'none';
+        }
+
+        // Face Mesh
+        const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        faceMesh.onResults(onFaceResults);
+
+        // Hands
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        hands.onResults(onHandsResults);
+
+        // --- LÓGICA DE INTERAÇÃO ---
+        function onFaceResults(results) {
+            isFaceLoaded = true; checkLoaded();
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+                
+                // Ponto de referência (maçã do rosto direita)
+                const point = landmarks[356]; 
+                const x = (1 - point.x) * window.innerWidth;
+                const y = point.y * window.innerHeight;
+
+                faceHud.style.display = 'block';
+                faceHud.style.transform = `translate(${x + 60}px, ${y - 40}px)`;
+
+                // Atualizar dados fake
+                if(Math.random() > 0.9) {
+                    document.getElementById('bpm-val').innerText = Math.floor(60 + Math.random() * 40);
+                    document.getElementById('coords-val').innerText = `${(point.x*100).toFixed(2)}, ${(point.y*100).toFixed(2)}`;
+                }
+            }
+        }
+
+        function onHandsResults(results) {
+            isHandsLoaded = true; checkLoaded();
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const lm = results.multiHandLandmarks[0];
+                
+                // 1. ROTAÇÃO (Dedo indicador)
+                const handX = lm[8].x;
+                const handY = lm[8].y;
+                
+                // Rotacionar o GRUPO INTEIRO (Terra + Nuvens)
+                earthGroup.rotation.y += (0.5 - handX) * 0.15;
+                earthGroup.rotation.x += (handY - 0.5) * 0.15;
+
+                // 2. ESCALA (Pinça: Polegar vs Indicador)
+                const dist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+                let targetScale = 1 + (dist * 4); 
+                targetScale = Math.max(0.5, Math.min(targetScale, 2.5)); // Limites
+                
+                // Interpolação suave (Lerp)
+                earthGroup.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+
+            } else {
+                // Auto rotação quando ocioso
+                earthGroup.rotation.y += 0.002;
+                // As nuvens giram levemente mais rápido que a terra
+                clouds.rotation.y += 0.0005; 
+            }
+        }
+
+        // Resize Loop
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Loop Principal
+        const cameraUtils = new Camera(videoElement, {
+            onFrame: async () => {
+                await faceMesh.send({image: videoElement});
+                await hands.send({image: videoElement});
+                renderer.render(scene, camera);
+            },
+            width: 1280, height: 720
+        });
+        cameraUtils.start();
+
+    </script>
+</body>
+</html>

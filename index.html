@@ -2,302 +2,460 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>AstroPose v3 - Physics Edition</title>
+    <title>AstroPose v15 - Final Gemini Integration</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; color: #fff; }
+        /* --- CSS GLOBAL --- */
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Roboto, sans-serif; color: #fff; }
         
+        /* VÍDEO E CANVAS */
         #input_video {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             object-fit: cover; transform: scaleX(-1); z-index: 0;
-            opacity: 0.25; filter: contrast(1.2) grayscale(0.6);
+            opacity: 0.3; filter: contrast(1.1) grayscale(0.6);
         }
         #output_canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+        #skeleton_canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; transform: scaleX(-1); }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
 
-        /* UI Elements */
+        /* LOGO */
         .logo {
-            position: absolute; top: 20px; left: 20px; font-size: 22px; font-weight: 800; letter-spacing: 3px;
+            position: absolute; top: 20px; left: 20px; font-size: 24px; font-weight: 800; letter-spacing: 2px;
             background: linear-gradient(90deg, #00f2fe, #4facfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
         }
-        
-        .controls-box {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 20px; background: rgba(0,0,0,0.6); padding: 10px 20px;
-            border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
-        }
-        .control-item { font-size: 14px; color: #ccc; display: flex; align-items: center; gap: 8px; }
-        .icon-key { font-size: 18px; color: #00f2fe; }
 
-        /* Info Panel */
+        /* SUMÁRIO VERTICAL */
+        #controls-summary {
+            position: absolute; top: 80px; left: 20px; width: 160px;
+            background: rgba(0, 15, 30, 0.8); border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 8px; padding: 15px; 
+            display: flex; flex-direction: column; gap: 15px; 
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
+        }
+        .control-header { font-size: 10px; color: #00f2fe; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px; letter-spacing: 1px; }
+        .control-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #ccc; text-align: left; }
+        .control-icon { font-size: 20px; width: 25px; text-align: center; color: #fff; }
+        .key-desc { opacity: 0.8; }
+
+        /* CHAT CONTAINER */
+        #chat-container {
+            position: absolute; bottom: 20px; left: 20px; width: 340px; height: 300px;
+            background: rgba(0, 10, 20, 0.9); 
+            border: 1px solid #00f2fe; 
+            border-radius: 12px;
+            display: flex; flex-direction: column; 
+            pointer-events: auto; 
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
+            overflow: hidden; /* Garante que o cabeçalho não saia das bordas arredondadas */
+        }
+
+        /* CABEÇALHO DO CHAT (NOVO) */
+        #chat-header {
+            padding: 12px 15px;
+            background: rgba(0, 242, 254, 0.15);
+            border-bottom: 1px solid rgba(0, 242, 254, 0.3);
+            color: #00f2fe;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        #chat-history { 
+            flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 12px;
+        }
+        /* Scrollbar fina */
+        #chat-history::-webkit-scrollbar { width: 4px; }
+        #chat-history::-webkit-scrollbar-thumb { background: #00f2fe; border-radius: 2px; }
+
+        /* BALÕES DE MENSAGEM */
+        .msg { 
+            padding: 10px 12px; border-radius: 8px; max-width: 85%; word-wrap: break-word; line-height: 1.4; 
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        .msg-ai { 
+            background: rgba(0, 242, 254, 0.1); color: #e0ffff; align-self: flex-start; 
+            border-left: 3px solid #00f2fe; 
+        }
+        .msg-user { 
+            background: rgba(255, 255, 255, 0.15); color: #fff; align-self: flex-end; 
+            text-align: right; border-right: 3px solid #aaa;
+        }
+        .msg-error { background: rgba(255, 50, 50, 0.2); color: #ffaaaa; align-self: flex-start; border-left: 3px solid red; }
+
+        /* ANIMAÇÃO DE DIGITANDO (TYPING) */
+        .typing-indicator { display: flex; align-items: center; gap: 3px; padding: 12px 15px; }
+        .typing-dot { width: 6px; height: 6px; background-color: #00f2fe; border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        /* INPUT AREA */
+        #chat-input-area { display: flex; border-top: 1px solid rgba(0, 242, 254, 0.3); padding: 5px; background: rgba(0,0,0,0.3); }
+        #chat-input { flex: 1; background: transparent; border: none; padding: 10px; color: #fff; outline: none; font-family: inherit; }
+        #chat-send { background: transparent; border: none; color: #00f2fe; padding: 0 15px; cursor: pointer; transition: transform 0.2s; font-size: 18px; }
+        #chat-send:hover { transform: scale(1.2); }
+
+        /* INFO PANEL */
         #info-panel {
-            position: absolute; right: 30px; top: 50%; transform: translateY(-50%) translateX(50px);
-            width: 260px; background: rgba(10, 20, 40, 0.9); border-left: 3px solid #00f2fe;
-            padding: 20px; opacity: 0; transition: all 0.5s cubic-bezier(0.17, 0.84, 0.44, 1);
-            backdrop-filter: blur(10px); border-radius: 0 15px 15px 0;
+            position: absolute; right: 30px; top: 50%; transform: translateY(-50%);
+            width: 280px; background: rgba(0, 0, 0, 0.85); border-right: 4px solid #00f2fe;
+            padding: 20px; border-radius: 10px 0 0 10px; text-align: right;
+            display: none;
         }
-        #info-panel.active { opacity: 1; transform: translateY(-50%) translateX(0); }
-        .info-title { font-size: 18px; font-weight: bold; color: #00f2fe; margin-bottom: 5px; text-transform: uppercase; }
-        .info-desc { font-size: 13px; line-height: 1.5; color: #ddd; }
+        #info-panel.active { display: block; animation: slideIn 0.5s ease; }
+        @keyframes slideIn { from { opacity:0; transform: translate(50px, -50%); } to { opacity:1; transform: translate(0, -50%); } }
+        .info-title { font-size: 24px; color: #00f2fe; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;}
+        .info-coord { font-family: monospace; font-size: 11px; color: #888; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        .info-desc { font-size: 13px; color: #ccc; line-height: 1.4; }
 
-        /* Loading Screen */
-        #loading {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 99; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; transition: opacity 0.5s;
+        /* MIRA CENTRAL */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 50%;
+            pointer-events: none; transition: 0.3s;
         }
-        .loader-spinner {
-            width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid #00f2fe;
-            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .scanning #crosshair { border-color: #00f2fe; box-shadow: 0 0 15px #00f2fe; transform: translate(-50%, -50%) scale(1.2); }
+        #gps-data { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 40px); text-align: center; font-family: monospace; font-size: 10px; color: #00f2fe; opacity: 0.7; }
 
-        /* Debug/Status */
-        #debug-status { position: absolute; top: 20px; right: 20px; text-align: right; font-family: monospace; font-size: 12px; color: #00f2fe; }
+        /* LOADING */
+        #loading { position: absolute; inset: 0; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; color: #00f2fe; }
+        /* MODE INDICATOR */
+        .mode-indicator { position: absolute; top: 20px; right: 20px; font-size: 12px; font-weight: bold; background: rgba(0, 0, 0, 0.6); padding: 8px 15px; border-radius: 4px; color: #fff; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
-    <div id="loading">
-        <div class="loader-spinner"></div>
-        <div style="color: #00f2fe; letter-spacing: 2px;">INICIALIZANDO SISTEMA</div>
-        <div style="color: #666; font-size: 12px; margin-top: 10px;">Permita o uso da câmera</div>
-    </div>
+    <div id="loading">INICIANDO ASTROPOSE V15...</div>
 
     <video id="input_video" playsinline></video>
     <canvas id="output_canvas"></canvas>
+    <canvas id="skeleton_canvas"></canvas>
 
     <div id="ui-layer">
-        <div class="logo">ASTROPOSE V3</div>
-        <div id="debug-status">SISTEMA: AGUARDANDO</div>
-        
-        <div id="info-panel">
-            <div class="info-title" id="geo-title">...</div>
-            <div class="info-desc" id="geo-desc">...</div>
+        <div class="logo">ASTROPOSE V15</div>
+        <div class="mode-indicator">SISTEMA: <span id="current-mode" style="color: #00f2fe;">AGUARDANDO</span></div>
+        <div id="crosshair"></div>
+        <div id="gps-data">LAT: 0.00 | LON: 0.00</div>
+
+        <div id="controls-summary">
+            <div class="control-header">CONTROLES</div>
+            <div class="control-item"><span class="control-icon">✊</span><span class="key-desc">MOVER</span></div>
+            <div class="control-item"><span class="control-icon">✋</span><span class="key-desc">ESCANEAR</span></div>
+            <div class="control-item"><span class="control-icon">✌️</span><span class="key-desc">ZOOM (+)</span></div>
+            <div class="control-item"><span class="control-icon">🤏</span><span class="key-desc">ZOOM (-)</span></div>
         </div>
 
-        <div class="controls-box">
-            <div class="control-item"><span class="icon-key">✊</span> ARRASTAR</div>
-            <div class="control-item"><span class="icon-key">↔️</span> ZOOM</div>
+        <div id="info-panel">
+            <div class="info-title" id="geo-name">--</div>
+            <div class="info-coord" id="geo-coord">--</div>
+            <div class="info-desc" id="geo-details">--</div>
+        </div>
+
+        <div id="chat-container">
+            <div id="chat-header">
+                <span>AstroPoseAI - Gemini</span>
+                <span style="font-size: 10px; color: lime;">● ONLINE</span>
+            </div>
+
+            <div id="chat-history">
+                <div class="msg msg-ai">Conexão estabelecida. Estou pronto para responder suas perguntas.</div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Digite sua pergunta..." autocomplete="off">
+                <button id="chat-send">➤</button>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 
-        // --- CONFIGURAÇÃO GERAL ---
-        const videoElement = document.getElementById('input_video');
-        const loadingScreen = document.getElementById('loading');
-        const statusText = document.getElementById('debug-status');
-        const infoPanel = document.getElementById('info-panel');
-        const geoTitle = document.getElementById('geo-title');
-        const geoDesc = document.getElementById('geo-desc');
+        // --- API GEMINI ---
+        // Substitua se atingir o limite
+        const API_KEY = "AIzaSyB3OYG4LjTMaiYBb2g3Bt_Qg27Z98skxAw"; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
-        // --- THREE.JS (CENA) ---
+
+        // --- GEO DATABASE ---
+        const GEO_DB = [
+            { name: "BRASIL", short:"BRA", lat: -14, lon: -55, desc: "Maior biodiversidade do planeta. Amazônia e Pantanal." },
+            { name: "EUA", short:"USA", lat: 38, lon: -97, desc: "Potência econômica com 50 estados." },
+            { name: "CANADÁ", short:"CAN", lat: 56, lon: -106, desc: "Vasto território norte, conhecido por seus lagos e frio." },
+            { name: "REINO UNIDO", short:"UK", lat: 54, lon: -2, desc: "Ilha histórica composta por 4 nações." },
+            { name: "FRANÇA", short:"FRA", lat: 46, lon: 2, desc: "Centro cultural da Europa Ocidental." },
+            { name: "RÚSSIA", short:"RUS", lat: 60, lon: 90, desc: "Maior país do mundo. Atravessa Europa e Ásia." },
+            { name: "CHINA", short:"CHN", lat: 35, lon: 105, desc: "Potência asiática milenar e mais populosa." },
+            { name: "JAPÃO", short:"JPN", lat: 36, lon: 138, desc: "Arquipélago vulcânico avançado tecnologicamente." },
+            { name: "AUSTRÁLIA", short:"AUS", lat: -25, lon: 133, desc: "País-continente isolado geograficamente." },
+            { name: "ÍNDIA", short:"IND", lat: 20, lon: 77, desc: "Subcontinente rico em cultura e história." },
+            { name: "ARGENTINA", short:"ARG", lat: -34, lon: -64, desc: "Terra dos Pampas, Tango e Andes sulistas." },
+            { name: "GROENLÂNDIA", short:"GRL", lat: 72, lon: -40, desc: "Coberta de gelo, território autônomo dinamarquês." },
+            { name: "EGITO", short:"EGY", lat: 26, lon: 30, desc: "Lar das pirâmides e do rio Nilo." },
+            { name: "ÁFRICA DO SUL", short:"ZAF", lat: -30, lon: 25, desc: "Ponto extremo sul do continente africano." }
+        ];
+
+        // --- DOM ---
+        const loadingScreen = document.getElementById('loading');
+        const gpsData = document.getElementById('gps-data');
+        const infoPanel = document.getElementById('info-panel');
+        const uiLayer = document.getElementById('ui-layer');
+        
+        // --- THREE.JS SETUP ---
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 9;
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 11;
 
         const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('output_canvas'), alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.1;
 
-        // --- GERENCIADOR DE LOADING (CORREÇÃO DO BUG) ---
-        const loadManager = new THREE.LoadingManager();
-        // Se carregar tudo: some.
-        loadManager.onLoad = () => { 
-            console.log("Texturas carregadas.");
-            // Não escondemos aqui, preferimos esconder quando a câmera iniciar para evitar tela branca
-        };
-        // Se der erro: loga mas continua.
-        loadManager.onError = (url) => { console.warn('Erro ao carregar textura:', url); };
-
-        // --- CRIAÇÃO DO GLOBO ---
         const earthGroup = new THREE.Group();
-        earthGroup.position.x = -2.5; 
         scene.add(earthGroup);
 
-        const texLoader = new THREE.TextureLoader(loadManager);
-        
-        // Materiais
-        const earthGeo = new THREE.SphereGeometry(1.8, 64, 64);
-        const earthMat = new THREE.MeshPhongMaterial({
-            map: texLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
-            bumpMap: texLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
-            bumpScale: 0.08, specular: new THREE.Color(0x222222), shininess: 10
-        });
-        const earth = new THREE.Mesh(earthGeo, earthMat);
+        // GLOBE
+        const texLoader = new THREE.TextureLoader();
+        const earth = new THREE.Mesh(
+            new THREE.SphereGeometry(1.8, 64, 64),
+            new THREE.MeshPhongMaterial({
+                map: texLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+                bumpMap: texLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png'),
+                bumpScale: 0.05, specular: new THREE.Color(0x222222), shininess: 12
+            })
+        );
         earthGroup.add(earth);
 
-        // Nuvens
-        const cloudMat = new THREE.MeshPhongMaterial({
-            map: texLoader.load('https://unpkg.com/three-globe/example/img/earth-clouds.png'),
-            transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false
-        });
-        const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.83, 64, 64), cloudMat);
+        const clouds = new THREE.Mesh(
+            new THREE.SphereGeometry(1.82, 64, 64),
+            new THREE.MeshPhongMaterial({
+                map: texLoader.load('https://unpkg.com/three-globe/example/img/earth-clouds.png'),
+                transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+            })
+        );
         earthGroup.add(clouds);
-
-        // Luz Atmosférica
-        const atmoMat = new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.1, side: THREE.BackSide, blending: THREE.AdditiveBlending });
-        earthGroup.add(new THREE.Mesh(new THREE.SphereGeometry(2.0, 64, 64), atmoMat));
-
-        // Iluminação
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        sunLight.position.set(5, 3, 5);
-        scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x111122)); 
-        const rimLight = new THREE.SpotLight(0x00f2fe, 2);
-        rimLight.position.set(-5, 5, 0);
-        scene.add(rimLight);
-
-        // --- SISTEMA DE FÍSICA E CONTROLE ---
         
-        // Variáveis de estado
-        let isFist = false;
+        const atmo = new THREE.Mesh(
+            new THREE.SphereGeometry(2.0, 64, 64),
+            new THREE.MeshBasicMaterial({ color: 0x00f2fe, transparent: true, opacity: 0.1, side: THREE.BackSide })
+        );
+        earthGroup.add(atmo);
+
+        // PIN TARGET
+        const targetGeo = new THREE.RingGeometry(0.05, 0.08, 32);
+        const targetMat = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, transparent: true, opacity: 0.8, depthTest: false });
+        const targetMarker = new THREE.Mesh(targetGeo, targetMat);
+        targetMarker.renderOrder = 999; 
+        targetMarker.visible = false;
+        earth.add(targetMarker);
+
+        // --- SPRITES ---
+        function createLabelSprite(text) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 128; canvas.height = 64; 
+            ctx.font = 'bold 32px "Segoe UI", Roboto, sans-serif';
+            ctx.fillStyle = 'rgba(0, 242, 254, 1.0)'; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0, 242, 254, 0.8)'; ctx.shadowBlur = 10; 
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.8, depthWrite: false });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.3, 0.15, 1); 
+            return sprite;
+        }
+
+        function latLonToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const z = (radius * Math.sin(phi) * Math.sin(theta));
+            const y = (radius * Math.cos(phi));
+            return new THREE.Vector3(x, y, z);
+        }
+
+        GEO_DB.forEach(loc => {
+            if(loc.short) {
+                const label = createLabelSprite(loc.short);
+                const pos = latLonToVector3(loc.lat, loc.lon, 1.88); 
+                label.position.copy(pos);
+                earthGroup.add(label); 
+            }
+        });
+
+        // Luzes
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.5); sunLight.position.set(5, 3, 8); scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x111111));
+
+        // --- LOGICA ---
+        let isGrabbing = false;
         let lastHandPos = { x: 0, y: 0 };
-        
-        // Física de Rotação (Velocidade atual)
-        let velocityX = 0; // Rotação no eixo X (Cima/Baixo)
-        let velocityY = 0.002; // Rotação no eixo Y (Esquerda/Direita) - começa girando devagar
-        
-        // Variáveis de Zoom
         let targetScale = 1;
-        
-        // Constantes de Sensibilidade
-        const DRAG_SENSITIVITY = 0.004; // Quão rápido gira ao arrastar
-        const FRICTION = 0.95; // Quanto desliza depois de soltar (0.99 = gelo, 0.8 = areia)
-        const ZOOM_SPEED = 0.08;
+        let rotY = 4.7; let rotX = 0.2; 
+        let isScanning = false;
+        const ROTATION_SPEED = 0.005;
 
-        // --- LOOP PRINCIPAL DE ANIMAÇÃO (THREE.JS) ---
+        function getCoordinatesFromRotation(rY, rX) {
+            let lon = -((rY % (Math.PI * 2)) / Math.PI) * 180;
+            lon = (lon % 360); if (lon > 180) lon -= 360; if (lon < -180) lon += 360;
+            lon -= 90; if(lon < -180) lon += 360;
+            let lat = (rX / (Math.PI / 2)) * 90;
+            return { lat: lat, lon: lon };
+        }
+
+        function findNearestLocation(lat, lon) {
+            let closest = null; let minDist = 10000;
+            GEO_DB.forEach(loc => {
+                const dLat = loc.lat - lat; const dLon = loc.lon - lon;
+                const dist = Math.sqrt(dLat*dLat + dLon*dLon);
+                if (dist < minDist) { minDist = dist; closest = loc; }
+            });
+            return minDist < 20 ? closest : null; 
+        }
+
+        // --- MEDIAPIPE ---
+        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+        const skeletonCanvas = document.getElementById('skeleton_canvas');
+        const sCtx = skeletonCanvas.getContext('2d');
+
+        hands.onResults((results) => {
+            loadingScreen.style.display = 'none';
+            sCtx.clearRect(0, 0, skeletonCanvas.width, skeletonCanvas.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const lm = results.multiHandLandmarks[0];
+                const hX = (1 - lm[9].x) * window.innerWidth;
+                const hY = lm[9].y * window.innerHeight;
+                const handSize = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y);
+                
+                const isFist = (Math.hypot(lm[12].x - lm[0].x, lm[12].y - lm[0].y) / handSize) < 0.85;
+                const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / handSize;
+
+                if (isFist) {
+                    document.getElementById('current-mode').innerText = "MOVER (PUNHO)";
+                    document.getElementById('current-mode').style.color = "yellow";
+                    uiLayer.classList.remove('scanning'); isScanning = false;
+                    if (!isGrabbing) { isGrabbing = true; lastHandPos = { x: hX, y: hY }; } 
+                    else {
+                        rotY += (hX - lastHandPos.x) * ROTATION_SPEED;
+                        rotX += (hY - lastHandPos.y) * ROTATION_SPEED;
+                        lastHandPos = { x: hX, y: hY };
+                    }
+                } else if (pinchDist < 0.3 || pinchDist > 0.7) {
+                     isGrabbing = false; isScanning = false; uiLayer.classList.remove('scanning');
+                     if(pinchDist < 0.3) { targetScale = Math.max(0.8, targetScale - 0.05); document.getElementById('current-mode').innerText = "ZOOM - (PINÇA)"; } 
+                     else { targetScale = Math.min(3.5, targetScale + 0.05); document.getElementById('current-mode').innerText = "ZOOM + (ABERTO)"; }
+                     document.getElementById('current-mode').style.color = "orange";
+                } else {
+                    isGrabbing = false;
+                    document.getElementById('current-mode').innerText = "ESCANEAR";
+                    document.getElementById('current-mode').style.color = "#00f2fe";
+                    uiLayer.classList.add('scanning'); isScanning = true;
+                }
+            } else {
+                uiLayer.classList.remove('scanning'); isScanning = false;
+                document.getElementById('current-mode').innerText = "AGUARDANDO";
+                document.getElementById('current-mode').style.color = "#fff";
+            }
+        });
+
+        // --- CHAT (COM ANIMAÇÃO) ---
+        const cIn = document.getElementById('chat-input'); 
+        const cBtn = document.getElementById('chat-send'); 
+        const cHist = document.getElementById('chat-history');
+
+        async function askAI(q) {
+            if(!q) return;
+
+            // User Msg
+            const userMsg = document.createElement('div'); userMsg.className = 'msg msg-user'; userMsg.innerText = q; 
+            cHist.appendChild(userMsg); cIn.value = ''; cHist.scrollTop = cHist.scrollHeight;
+
+            // Typing Bubble
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'msg msg-ai typing-indicator';
+            typingBubble.id = 'ai-typing';
+            typingBubble.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+            cHist.appendChild(typingBubble); cHist.scrollTop = cHist.scrollHeight;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST', headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({contents:[{parts:[{text:`IA SciFi. Resumo curto. Pergunta: ${q}`}]}]})
+                });
+                const data = await res.json();
+                
+                const typingEl = document.getElementById('ai-typing'); if(typingEl) typingEl.remove();
+
+                if(!data.candidates || !data.candidates[0].content) throw new Error("Sem resposta");
+
+                const ans = document.createElement('div'); ans.className = 'msg msg-ai'; 
+                ans.innerText = data.candidates[0].content.parts[0].text.replace(/\*/g,'');
+                cHist.appendChild(ans); 
+                
+            } catch(e) { 
+                const typingEl = document.getElementById('ai-typing'); if(typingEl) typingEl.remove();
+                const err = document.createElement('div'); err.className = 'msg msg-error'; 
+                err.innerText = "Erro de conexão com Gemini."; cHist.appendChild(err);
+            }
+            cHist.scrollTop = cHist.scrollHeight;
+        }
+        
+        cBtn.onclick = () => askAI(cIn.value); cIn.addEventListener("keypress", (e) => { if (e.key === "Enter") cBtn.click(); });
+
+        // --- ANIMATE ---
         function animate() {
             requestAnimationFrame(animate);
+            earthGroup.rotation.y += (rotY - earthGroup.rotation.y) * 0.1;
+            earthGroup.rotation.x += (rotX - earthGroup.rotation.x) * 0.1;
+            earthGroup.rotation.x = Math.max(-1.0, Math.min(1.0, earthGroup.rotation.x));
 
-            // 1. Aplica Velocidade à Rotação
-            earthGroup.rotation.y += velocityY;
-            earthGroup.rotation.x += velocityX;
-
-            // 2. Aplica Atrito (Friction) - Reduz velocidade gradualmente se não estiver segurando
-            if (!isFist) {
-                velocityY *= FRICTION;
-                velocityX *= FRICTION;
-                
-                // Velocidade mínima para rotação automática bonita
-                if (Math.abs(velocityY) < 0.0005) velocityY = 0.0005; 
-            }
-
-            // 3. Zoom Suave
             const currentScale = earthGroup.scale.x;
-            const smoothScale = THREE.MathUtils.lerp(currentScale, targetScale, ZOOM_SPEED);
-            earthGroup.scale.set(smoothScale, smoothScale, smoothScale);
-
-            // 4. Nuvens
+            earthGroup.scale.set(currentScale + (targetScale - currentScale) * 0.1, currentScale + (targetScale - currentScale) * 0.1, currentScale + (targetScale - currentScale) * 0.1);
             clouds.rotation.y += 0.0002;
 
-            // 5. Lógica do Painel
-            if (earthGroup.scale.x > 2.5) {
-                infoPanel.classList.add('active');
-                updateRegionInfo(earthGroup.rotation.y);
-            } else {
-                infoPanel.classList.remove('active');
-            }
+            const coords = getCoordinatesFromRotation(earthGroup.rotation.y, earthGroup.rotation.x);
+            gpsData.innerText = `LAT: ${coords.lat.toFixed(1)} | LON: ${coords.lon.toFixed(1)}`;
 
+            if (isScanning) {
+                const loc = findNearestLocation(coords.lat, coords.lon);
+                if (loc) {
+                    infoPanel.classList.add('active');
+                    document.getElementById('geo-name').innerText = loc.name;
+                    document.getElementById('geo-coord').innerText = `${coords.lat.toFixed(1)}°, ${coords.lon.toFixed(1)}°`;
+                    document.getElementById('geo-details').innerText = loc.desc;
+                    targetMarker.visible = true;
+                    const pos = latLonToVector3(loc.lat, loc.lon, 1.81);
+                    targetMarker.position.copy(pos); targetMarker.lookAt(0,0,0);
+                } else {
+                    infoPanel.classList.remove('active'); targetMarker.visible = false;
+                }
+            } else { targetMarker.visible = false; }
             renderer.render(scene, camera);
         }
 
-        // --- DADOS GEOGRÁFICOS ---
-        function updateRegionInfo(rotY) {
-            let deg = (rotY % (Math.PI * 2)); 
-            if(deg < 0) deg += Math.PI * 2;
-            deg = THREE.MathUtils.radToDeg(deg);
-            
-            let t = "", d = "";
-            // Mapeamento aproximado
-            if (deg > 50 && deg < 110) { t = "Oceano Atlântico"; d = "Separa as Américas da Europa e da África."; }
-            else if (deg >= 110 && deg < 170) { t = "Américas"; d = "Inclui a cordilheira dos Andes e a Amazônia."; }
-            else if (deg >= 170 && deg < 290) { t = "Oceano Pacífico"; d = "Cobre um terço da superfície da Terra."; }
-            else if (deg >= 290 && deg < 350) { t = "Ásia & Oceania"; d = "A região mais populosa do planeta."; }
-            else { t = "Europa & África"; d = "O berço da civilização humana."; }
-            
-            geoTitle.innerText = t; geoDesc.innerText = d;
-        }
-
-        // --- MEDIAPIPE (VISÃO COMPUTACIONAL) ---
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
-        
-        hands.onResults((results) => {
-            // **CORREÇÃO DO LOADING**: Assim que detectar a primeira mão ou frame válido, remove o loading
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
-
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                statusText.innerText = "STATUS: CONECTADO";
-                statusText.style.color = "#00f2fe";
-
-                const lm = results.multiHandLandmarks[0];
-                
-                // Posição atual da mão (Pixel Coordinate -> Normalized)
-                // Usamos pixel real para calcular delta melhor
-                const handX = lm[9].x * window.innerWidth; // Usando base do dedo médio (mais estável)
-                const handY = lm[9].y * window.innerHeight;
-
-                // Detecção de Punho (Pontas dos dedos perto do pulso)
-                const wrist = lm[0];
-                const tip = lm[12]; // Dedo médio
-                const distFist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
-                const currentlyFist = distFist < 0.3; // Threshold de punho
-
-                if (currentlyFist) {
-                    // --- MODO ARRASTAR (DRAG) ---
-                    if (!isFist) {
-                        // Acabou de fechar a mão: Reseta o "último ponto" para não dar pulo
-                        isFist = true;
-                        lastHandPos = { x: handX, y: handY };
-                    } else {
-                        // Já estava fechada: Calcula o DELTA (Movimento)
-                        const deltaX = handX - lastHandPos.x;
-                        const deltaY = handY - lastHandPos.y;
-
-                        // Aplica o movimento à VELOCIDADE (Impulso)
-                        // Invertemos X pois o vídeo é espelhado
-                        velocityY = deltaX * DRAG_SENSITIVITY * -1; 
-                        velocityX = deltaY * DRAG_SENSITIVITY * -1;
-
-                        lastHandPos = { x: handX, y: handY };
-                    }
-                } else {
-                    isFist = false;
-                    // --- MODO ZOOM ---
-                    const distPinch = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
-                    // Fórmula de zoom agressiva
-                    let z = 0.6 + (distPinch * 7);
-                    targetScale = Math.max(0.7, Math.min(z, 5.0));
-                }
-
-            } else {
-                statusText.innerText = "STATUS: PROCURANDO MÃO";
-                statusText.style.color = "orange";
-                isFist = false;
-            }
+        const cam = new Camera(document.getElementById('input_video'), {onFrame: async()=>{await hands.send({image:document.getElementById('input_video')})}, width:1280, height:720});
+        cam.start(); animate();
+        window.addEventListener('resize', ()=>{
+            camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            skeletonCanvas.width = window.innerWidth; skeletonCanvas.height = window.innerHeight;
         });
 
-        // Inicializar Câmera
-        const cameraUtils = new Camera(videoElement, {
-            onFrame: async () => { await hands.send({image: videoElement}); },
-            width: 1280, height: 720
-        });
-        cameraUtils.start();
-        animate();
-
-        // Resize Handler
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>

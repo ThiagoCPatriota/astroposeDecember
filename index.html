@@ -2,22 +2,57 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>AstroPose v17 - Modular</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AstroPose v18 - Explore o Sistema Solar com gestos de mão. Visão computacional + NASA API.">
+    <title>AstroPose v18 — Solar System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="loading">INICIANDO ASTROPOSE V17...</div>
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="loading-content">
+            <div class="loading-logo">ASTROPOSE</div>
+            <div class="loading-version">v18 — SOLAR SYSTEM</div>
+            <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+            <div class="loading-status" id="loading-status">INICIALIZANDO SISTEMAS...</div>
+        </div>
+    </div>
 
+    <!-- Camera & Canvas -->
     <video id="input_video" playsinline></video>
     <canvas id="output_canvas"></canvas>
     <canvas id="skeleton_canvas"></canvas>
 
+    <!-- UI Layer -->
     <div id="ui-layer">
-        <div class="logo">ASTROPOSE V17</div>
-        <div class="mode-indicator">SISTEMA: <span id="current-mode" class="status-neutral">AGUARDANDO</span></div>
-        <div id="crosshair"></div>
+        <!-- Header -->
+        <div class="header-bar">
+            <div class="logo">ASTROPOSE <span class="logo-version">v18</span></div>
+            <div class="mode-indicator">
+                <span class="mode-dot" id="mode-dot"></span>
+                <span id="current-mode" class="status-neutral">SISTEMA SOLAR</span>
+            </div>
+        </div>
+
+        <!-- Scene State Indicator -->
+        <div id="scene-breadcrumb">
+            <span class="bc-item active" id="bc-solar">☀ SISTEMA SOLAR</span>
+            <span class="bc-separator">›</span>
+            <span class="bc-item" id="bc-planet">🪐 PLANETA</span>
+            <span class="bc-separator">›</span>
+            <span class="bc-item" id="bc-surface">🌍 SUPERFÍCIE</span>
+        </div>
+
+        <!-- Crosshair -->
+        <div id="crosshair">
+            <div class="crosshair-ring"></div>
+            <div class="crosshair-dot"></div>
+        </div>
         <div id="gps-data">LAT: 0.00 | LON: 0.00</div>
 
+        <!-- Controls Panel -->
         <div id="controls-summary">
             <div class="control-header">COMANDOS GESTUAIS</div>
             <div class="control-item"><span class="control-icon">✊</span><span class="key-desc">PUNHO: Mover</span></div>
@@ -26,32 +61,59 @@
             <div class="control-item"><span class="control-icon">☝️</span><span class="key-desc">DEDO 1: Zoom (-)</span></div>
         </div>
 
+        <!-- Planet Info Panel -->
         <div id="info-panel">
+            <div class="info-badge" id="info-badge">PLANETA</div>
             <div class="info-title" id="geo-name">--</div>
             <div class="info-coord" id="geo-coord">--</div>
+            <div class="info-divider"></div>
             <div class="info-desc" id="geo-details">--</div>
+            <div id="nasa-image-container" style="display:none;">
+                <div class="info-divider"></div>
+                <div class="nasa-label">📷 NASA IMAGE</div>
+                <img id="nasa-image" alt="NASA Image" />
+                <div class="nasa-caption" id="nasa-caption"></div>
+            </div>
+            <div id="landmark-info" style="display:none;">
+                <div class="info-divider"></div>
+                <div class="landmark-badge">📍 MARCO HISTÓRICO</div>
+                <div class="landmark-name" id="landmark-name"></div>
+                <div class="landmark-desc" id="landmark-desc"></div>
+            </div>
         </div>
 
+        <!-- APOD Panel -->
+        <div id="apod-panel">
+            <div class="apod-header">🔭 NASA — IMAGEM DO DIA</div>
+            <img id="apod-image" alt="APOD" />
+            <div class="apod-title" id="apod-title"></div>
+        </div>
+
+        <!-- Chat Container -->
         <div id="chat-container">
             <div id="chat-header">
-                <span>AstroPoseAI - Gemini</span>
-                <span style="font-size: 10px; color: lime;">● ONLINE</span>
+                <span>AstroPoseAI — Gemini</span>
+                <span class="chat-status">● ONLINE</span>
             </div>
             <div id="chat-history">
-                <div class="msg msg-ai">Sistemas modulares ativos. Aguardando input.</div>
+                <div class="msg msg-ai">Sistema solar ativo. Navegue com gestos.</div>
             </div>
             <div id="chat-input-area">
                 <input type="text" id="chat-input" placeholder="Digite sua pergunta..." autocomplete="off">
                 <button id="chat-send">➤</button>
             </div>
         </div>
+
+        <!-- Transition Overlay -->
+        <div id="transition-overlay"></div>
     </div>
 
+    <!-- MediaPipe Hands -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    
+
     <script type="module" src="script.js"></script>
 </body>
 </html>

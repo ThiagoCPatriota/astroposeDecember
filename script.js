@@ -2,7 +2,18 @@
 // ASTROPOSE v18 — SOLAR SYSTEM
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-import { NASA_API_KEY } from './config.js';
+// import { NASA_API_KEY } from './config.js';
+let apiKey = 'DEMO_KEY';
+// Tenta obter a chave da Vercel (se estiver lá) ou de uma variável global
+if (typeof NASA_API_KEY !== 'undefined') {
+    apiKey = NASA_API_KEY;
+} else if (import.meta.env && import.meta.env.VITE_NASA_KEY) {
+    apiKey = import.meta.env.VITE_NASA_KEY;
+}
+
+// const NASA_APOD_API = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
+
+
 
 // --- CONFIGURAÇÕES GLOBAIS ---
 const GLOBE_RADIUS = 2.5;
@@ -17,7 +28,8 @@ let transitionProgress = 0;
 let isTransitioning = false;
 
 const NASA_IMAGE_API = 'https://images-api.nasa.gov/search';
-const NASA_APOD_API = `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}`;
+// const NASA_APOD_API = `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}`;
+const NASA_APOD_API = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
 
 // --- PLANET DATA ---
 const TEXTURE_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
@@ -25,7 +37,7 @@ const TEXTURE_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
 // --- SEEDED RANDOM for consistent procedural textures ---
 function seededRandom(seed) {
     let s = seed;
-    return function() {
+    return function () {
         s = (s * 9301 + 49297) % 233280;
         return s / 233280;
     };

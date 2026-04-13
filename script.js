@@ -2,6 +2,7 @@
 // ASTROPOSE v18 — SOLAR SYSTEM
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+import { NASA_API_KEY } from './config.js';
 
 // --- CONFIGURAÇÕES GLOBAIS ---
 const GLOBE_RADIUS = 2.5;
@@ -16,7 +17,7 @@ let transitionProgress = 0;
 let isTransitioning = false;
 
 const NASA_IMAGE_API = 'https://images-api.nasa.gov/search';
-const NASA_APOD_API = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+const NASA_APOD_API = `https://api.nasa.gov/planetary/apod?api_key=${NASA_API_KEY}`;
 
 // --- PLANET DATA ---
 const TEXTURE_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
@@ -37,7 +38,7 @@ function generatePlanetTexture(baseColor, variation, bands) {
             const cr = Math.min(255, Math.max(0, r + noise * 40 + bandNoise));
             const cg = Math.min(255, Math.max(0, g + noise * 30 + bandNoise * 0.5));
             const cb = Math.min(255, Math.max(0, b + noise * 20));
-            ctx.fillStyle = `rgb(${cr|0},${cg|0},${cb|0})`;
+            ctx.fillStyle = `rgb(${cr | 0},${cg | 0},${cb | 0})`;
             ctx.fillRect(x, y, 1, 1);
         }
     }
@@ -1345,7 +1346,7 @@ async function fetchAPOD() {
         const dateEl = document.getElementById('apod-date');
         if (data.date) {
             const [y, m, d] = data.date.split('-');
-            const months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
             dateEl.textContent = `${d} ${months[parseInt(m) - 1]} ${y}`;
         }
 

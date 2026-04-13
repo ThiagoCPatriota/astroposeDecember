@@ -133,26 +133,29 @@
             </div>
         </div>
 
-        <!-- APOD Panel -->
-        <div id="apod-panel">
-            <div class="apod-header">🔭 NASA — IMAGEM DO DIA</div>
-            <img id="apod-image" alt="APOD" />
-            <div class="apod-title" id="apod-title"></div>
-        </div>
-
-        <!-- Chat Container -->
-        <div id="chat-container">
-            <div id="chat-header">
-                <span>AstroPoseAI — Gemini</span>
-                <span class="chat-status">● ONLINE</span>
+        <!-- NASA APOD — Imagem do Dia -->
+        <div id="apod-widget">
+            <div class="apod-widget-header">
+                <div class="apod-widget-header-left">
+                    <span class="apod-icon-pulse">🔭</span>
+                    <span class="apod-header-title">NASA — IMAGEM DO DIA</span>
+                </div>
+                <div class="apod-widget-date" id="apod-date"></div>
             </div>
-            <div id="chat-history">
-                <div class="msg msg-ai">Sistema solar ativo. Navegue com gestos.</div>
+            <div class="apod-image-wrapper" id="apod-image-wrapper">
+                <div class="apod-loading" id="apod-loading">
+                    <div class="apod-loading-ring"></div>
+                    <span>Carregando APOD...</span>
+                </div>
+                <img id="apod-image" alt="NASA Astronomy Picture of the Day" />
+                <div class="apod-image-overlay"></div>
             </div>
-            <div id="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Digite sua pergunta..." autocomplete="off">
-                <button id="chat-send">➤</button>
+            <div class="apod-info">
+                <div class="apod-title" id="apod-title"></div>
+                <div class="apod-description" id="apod-description"></div>
+                <div class="apod-copyright" id="apod-copyright"></div>
             </div>
+            <button class="apod-toggle" id="apod-toggle" title="Expandir / Minimizar">▲</button>
         </div>
 
         <!-- Transition Overlay -->

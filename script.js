@@ -15,12 +15,8 @@ let selectedPlanetIndex = -1;
 let transitionProgress = 0;
 let isTransitioning = false;
 
-// --- API CONFIG ---
-const GEMINI_API_KEY = "SUA_CHAVE_AQUI";
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 const NASA_IMAGE_API = 'https://images-api.nasa.gov/search';
 const NASA_APOD_API = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
-let isFetchingAI = false;
 
 // --- PLANET DATA ---
 const TEXTURE_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
@@ -1334,95 +1330,111 @@ document.addEventListener('keydown', (e) => {
 });
 
 async function fetchAPOD() {
+    const loadingEl = document.getElementById('apod-loading');
+    const widget = document.getElementById('apod-widget');
+
+    // Show widget immediately with loading state
+    widget.classList.add('visible');
+
     try {
         const res = await fetch(NASA_APOD_API);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data.url && data.media_type === 'image') {
-            document.getElementById('apod-image').src = data.url;
+
+        // Date
+        const dateEl = document.getElementById('apod-date');
+        if (data.date) {
+            const [y, m, d] = data.date.split('-');
+            const months = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            dateEl.textContent = `${d} ${months[parseInt(m) - 1]} ${y}`;
+        }
+
+        if (data.media_type === 'image' && data.url) {
+            const img = document.getElementById('apod-image');
+            img.onload = () => {
+                if (loadingEl) loadingEl.style.display = 'none';
+                img.classList.add('loaded');
+            };
+            img.onerror = () => {
+                if (loadingEl) loadingEl.innerHTML = '<span style="color:#ff9944;">Erro ao carregar imagem</span>';
+            };
+            img.src = data.hdurl || data.url;
             document.getElementById('apod-title').textContent = data.title || '';
-            document.getElementById('apod-panel').classList.add('visible');
+
+            // Description (truncated)
+            const desc = data.explanation || '';
+            const descEl = document.getElementById('apod-description');
+            descEl.textContent = desc.length > 200 ? desc.substring(0, 200) + '...' : desc;
+            descEl.dataset.full = desc;
+            descEl.dataset.truncated = descEl.textContent;
+
+            // Copyright
+            if (data.copyright) {
+                document.getElementById('apod-copyright').textContent = `© ${data.copyright.trim()}`;
+            }
+        } else if (data.media_type === 'video') {
+            // If it's a video day, show thumbnail with a play icon
+            if (loadingEl) loadingEl.style.display = 'none';
+            const wrapper = document.getElementById('apod-image-wrapper');
+            wrapper.innerHTML = `<a href="${data.url}" target="_blank" class="apod-video-link">▶ Assistir Vídeo</a>`;
+            document.getElementById('apod-title').textContent = data.title || '';
+            const desc = data.explanation || '';
+            const descEl = document.getElementById('apod-description');
+            descEl.textContent = desc.length > 200 ? desc.substring(0, 200) + '...' : desc;
         }
     } catch (e) {
         console.error('APOD error:', e);
-    }
-}
-
-// --- AI FETCH ---
-async function fetchCountryDescription(countryName) {
-    if (isFetchingAI) return;
-    isFetchingAI = true;
-    document.getElementById('geo-details').innerText = "📡 Obtendo dados...";
-
-    try {
-        const prompt = `Descreva o país ${countryName} em APENAS UMA frase curta e técnica em Português.`;
-        const res = await fetch(GEMINI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 200 } })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        let aiText = "Dados indisponíveis.";
-        if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            aiText = data.candidates[0].content.parts[0].text.replace(/\*/g, '');
+        if (loadingEl) {
+            loadingEl.innerHTML = `
+                <span style="color:#ff9944; font-family: var(--font-display); font-size: 8px; letter-spacing: 1px;">API INDISPONÍVEL</span>
+                <span style="color:#666; font-size: 10px; margin-top: 4px;">Tente novamente mais tarde</span>
+            `;
         }
-        document.getElementById('geo-details').innerText = aiText;
-    } catch (error) {
-        document.getElementById('geo-details').innerText = "Sem conexão IA.";
-    } finally {
-        isFetchingAI = false;
+        document.getElementById('apod-title').textContent = 'Astronomy Picture of the Day';
+        document.getElementById('apod-description').textContent = 'A imagem astronômica do dia da NASA não pôde ser carregada. A API pode estar temporariamente fora do ar.';
     }
 }
 
-// --- CHATBOT ---
-const cIn = document.getElementById('chat-input');
-const cBtn = document.getElementById('chat-send');
-const cHist = document.getElementById('chat-history');
+// --- APOD WIDGET INTERACTIVITY ---
+(function initAPODWidget() {
+    // Toggle expand/collapse
+    const toggle = document.getElementById('apod-toggle');
+    const widget = document.getElementById('apod-widget');
+    if (toggle && widget) {
+        toggle.addEventListener('click', () => {
+            widget.classList.toggle('expanded');
+            toggle.textContent = widget.classList.contains('expanded') ? '▼' : '▲';
 
-async function askAI(q) {
-    if (!q) return;
-    const userMsg = document.createElement('div');
-    userMsg.className = 'msg msg-user';
-    userMsg.innerText = q;
-    cHist.appendChild(userMsg);
-    cIn.value = '';
-    cHist.scrollTop = cHist.scrollHeight;
-
-    const typing = document.createElement('div');
-    typing.className = 'msg msg-ai typing-indicator';
-    typing.id = 'ai-typing';
-    typing.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
-    cHist.appendChild(typing);
-    cHist.scrollTop = cHist.scrollHeight;
-
-    try {
-        const prompt = `Você é uma IA tática espacial do AstroPose. Responda APENAS a: "${q}". Regras: Sem saudações. Resposta curta em Português. Foque em astronomia e exploração espacial.`;
-        const res = await fetch(GEMINI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 200 } })
+            // If expanded, show full description
+            const descEl = document.getElementById('apod-description');
+            if (widget.classList.contains('expanded') && descEl.dataset.full) {
+                descEl.textContent = descEl.dataset.full;
+            } else if (descEl.dataset.truncated) {
+                descEl.textContent = descEl.dataset.truncated;
+            }
         });
-        if (!res.ok) throw new Error("Erro API");
-        const data = await res.json();
-        document.getElementById('ai-typing')?.remove();
-
-        let ansText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Erro na resposta.";
-        const ans = document.createElement('div');
-        ans.className = 'msg msg-ai';
-        ans.innerText = ansText;
-        cHist.appendChild(ans);
-    } catch (e) {
-        document.getElementById('ai-typing')?.remove();
-        const err = document.createElement('div');
-        err.className = 'msg msg-error';
-        err.innerText = "Erro conexão.";
-        cHist.appendChild(err);
     }
-    cHist.scrollTop = cHist.scrollHeight;
-}
-cBtn.onclick = () => askAI(cIn.value);
-cIn.addEventListener("keypress", (e) => { if (e.key === "Enter") cBtn.click(); });
+
+    // Parallax on image hover
+    const imgWrapper = document.getElementById('apod-image-wrapper');
+    if (imgWrapper) {
+        imgWrapper.addEventListener('mousemove', (e) => {
+            const rect = imgWrapper.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+            const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+            const img = document.getElementById('apod-image');
+            if (img) {
+                img.style.transform = `scale(1.08) translate(${x * -8}px, ${y * -8}px)`;
+            }
+        });
+        imgWrapper.addEventListener('mouseleave', () => {
+            const img = document.getElementById('apod-image');
+            if (img) {
+                img.style.transform = 'scale(1.03) translate(0, 0)';
+            }
+        });
+    }
+})();
 
 // --- ANIMATION LOOP ---
 let prevTime = performance.now();

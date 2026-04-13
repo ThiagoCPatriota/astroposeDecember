@@ -80,6 +80,57 @@
                 <div class="landmark-name" id="landmark-name"></div>
                 <div class="landmark-desc" id="landmark-desc"></div>
             </div>
+            <div class="info-divider" id="detail-btn-divider" style="display:none;"></div>
+            <button id="detail-btn" style="display:none;">🔭 EXPLORAR DETALHES</button>
+        </div>
+
+        <!-- Planet Detail Modal -->
+        <div id="planet-detail-modal">
+            <div class="pdm-backdrop"></div>
+            <div class="pdm-container">
+                <div class="pdm-header">
+                    <div class="pdm-header-left">
+                        <div class="pdm-badge" id="pdm-badge">PLANETA</div>
+                        <h1 class="pdm-title" id="pdm-title">--</h1>
+                        <p class="pdm-subtitle" id="pdm-subtitle">--</p>
+                    </div>
+                    <button class="pdm-close" id="pdm-close">✕</button>
+                </div>
+
+                <div class="pdm-body">
+                    <!-- Stats Grid -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📊 DADOS TÉCNICOS</h2>
+                        <div class="pdm-stats-grid" id="pdm-stats-grid"></div>
+                    </section>
+
+                    <!-- Description -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📖 SOBRE</h2>
+                        <p class="pdm-description" id="pdm-description"></p>
+                    </section>
+
+                    <!-- Image Gallery -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">📷 GALERIA NASA</h2>
+                        <div class="pdm-gallery" id="pdm-gallery">
+                            <div class="pdm-gallery-loading">Carregando imagens da NASA...</div>
+                        </div>
+                    </section>
+
+                    <!-- Curiosities -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">💡 CURIOSIDADES</h2>
+                        <ul class="pdm-curiosities" id="pdm-curiosities"></ul>
+                    </section>
+
+                    <!-- Missions Timeline -->
+                    <section class="pdm-section">
+                        <h2 class="pdm-section-title">🚀 MISSÕES RELACIONADAS</h2>
+                        <div class="pdm-timeline" id="pdm-timeline"></div>
+                    </section>
+                </div>
+            </div>
         </div>
 
         <!-- APOD Panel -->

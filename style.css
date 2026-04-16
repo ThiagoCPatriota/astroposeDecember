@@ -1,5 +1,5 @@
 /* ============================================
-   ASTROPOSE v18 — SOLAR SYSTEM THEME
+   ASTROPOSE v19 — SOLAR SYSTEM THEME (8K)
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
@@ -1242,9 +1242,7 @@ body {
     .header-bar { padding: 10px 14px; }
     .logo { font-size: 16px; }
     #controls-summary { display: none; }
-    #chat-container { width: 260px; height: 220px; }
     #info-panel { width: 260px; padding: 16px; }
-    #apod-panel { width: 180px; }
     #scene-breadcrumb { font-size: 8px; padding: 6px 14px; }
     #planet-selector { padding: 8px 10px; }
     .ps-item { min-width: 38px; padding: 6px 6px; }

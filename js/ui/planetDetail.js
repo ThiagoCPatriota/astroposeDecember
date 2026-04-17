@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — PLANET DETAIL MODAL
+// T.A.R.D.I.S. â€” PLANET DETAIL MODAL
 // ============================================
 import { PLANET_DETAILS_DATA } from '../data/planetDetails.js';
 import { fetchNASAGallery } from '../api/nasaApi.js';
@@ -94,3 +94,4 @@ export function initPlanetDetailEvents() {
         }
     });
 }
+

@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — COMETS
+// T.A.R.D.I.S. â€” COMETS
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { solarSystemGroup } from './setup.js';
@@ -143,3 +143,4 @@ export function animateComets(time) {
         comet.coma.scale.set(pulse, pulse, pulse);
     });
 }
+

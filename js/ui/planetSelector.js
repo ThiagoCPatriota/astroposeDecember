@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — PLANET SELECTOR UI
+// T.A.R.D.I.S. â€” PLANET SELECTOR UI
 // ============================================
 import { PLANETS_DATA } from '../data/planetsData.js';
 
@@ -56,3 +56,4 @@ export function hidePlanetSelector() {
     const ps = document.getElementById('planet-selector');
     if (ps) ps.classList.add('hidden');
 }
+

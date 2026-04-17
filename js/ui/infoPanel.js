@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — INFO PANEL
+// T.A.R.D.I.S. — INFO PANEL
 // ============================================
 import { PLANET_DETAILS_DATA } from '../data/planetDetails.js';
 import { openPlanetDetail } from './planetDetail.js';
@@ -49,3 +49,4 @@ export function showLandmarkInfo(lm, selectedPlanet) {
     document.getElementById('landmark-desc').textContent =
         (lm.year ? `[${lm.year}] ` : '') + lm.desc;
 }
+

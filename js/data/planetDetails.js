@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — DETALHES DOS PLANETAS (MODAL)
+// T.A.R.D.I.S. — DETALHES DOS PLANETAS (MODAL)
 // ============================================
 
 export const PLANET_DETAILS_DATA = {
@@ -21,7 +21,7 @@ export const PLANET_DETAILS_DATA = {
             { icon: '⚡', text: 'A cada segundo, o Sol converte 4 milhões de toneladas de matéria em energia pura (E=mc²).' },
             { icon: '🔄', text: 'O Sol completa uma rotação a cada 25 dias no equador e 35 dias nos polos — rotação diferencial!' },
             { icon: '💨', text: 'O vento solar viaja a 400-750 km/s e cria a heliosfera, uma bolha que envolve todo o sistema solar.' },
-            { icon: '📏', text: 'Cerca de 1,3 milhão de Terras caberiam dentro do Sol.' }
+            { icon: '🔍', text: 'Cerca de 1,3 milhão de Terras caberiam dentro do Sol.' }
         ],
         missions: [
             { year: '1990', name: 'Ulysses', desc: 'Missão conjunta ESA/NASA para estudar os polos do Sol.' },
@@ -49,7 +49,7 @@ export const PLANET_DETAILS_DATA = {
             { icon: '🌡️', text: 'A variação de temperatura entre dia e noite é de mais de 600°C.' },
             { icon: '🔍', text: 'Mercúrio é tão denso que seu núcleo de ferro ocupa 85% do raio do planeta.' },
             { icon: '🎵', text: 'Crateras em Mercúrio são nomeadas com artistas: Beethoven, Shakespeare, Tolkien.' },
-            { icon: '📐', text: 'Um dia solar em Mercúrio (nascer ao nascer do sol) dura 176 dias terrestres.' }
+            { icon: '🔅', text: 'Um dia solar em Mercúrio (nascer ao nascer do sol) dura 176 dias terrestres.' }
         ],
         missions: [
             { year: '1974', name: 'Mariner 10', desc: 'Primeira nave a visitar Mercúrio — mapeou 45% da superfície.' },

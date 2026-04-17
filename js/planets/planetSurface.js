@@ -1,8 +1,8 @@
 // ============================================
-// ASTROPOSE — PLANET SURFACE VIEW (8K HQ)
+// T.A.R.D.I.S. — PLANET SURFACE VIEW (8K HQ)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-import { GLOBE_RADIUS, GLOBE_SEGMENTS } from '../config.js';
+import { GLOBE_RADIUS, EFFECTIVE_SEGMENTS, USE_HQ_TEXTURES } from '../config.js';
 import { planetSurfaceGroup } from '../scene/setup.js';
 import { createPlanetMaterial, createRingMesh, loadTexture } from './textures.js';
 import { loadEarthBorders, createLandmarks } from './earthFeatures.js';
@@ -10,35 +10,80 @@ import { loadEarthBorders, createLandmarks } from './earthFeatures.js';
 export let surfaceEarth = null;
 export let surfaceGroup = null;
 
+/**
+ * Deep-dispose a Three.js object and all children.
+ * Frees GPU memory for textures, geometries, and materials.
+ */
+function deepDispose(obj) {
+    if (!obj) return;
+
+    // Recurse children
+    while (obj.children && obj.children.length > 0) {
+        deepDispose(obj.children[0]);
+        obj.remove(obj.children[0]);
+    }
+
+    // Dispose geometry
+    if (obj.geometry) {
+        obj.geometry.dispose();
+    }
+
+    // Dispose material(s)
+    if (obj.material) {
+        const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+        materials.forEach(mat => {
+            // Dispose all texture maps
+            const texProps = ['map', 'bumpMap', 'normalMap', 'specularMap', 'emissiveMap', 'envMap', 'alphaMap', 'aoMap', 'lightMap'];
+            texProps.forEach(prop => {
+                if (mat[prop]) {
+                    mat[prop].dispose();
+                    mat[prop] = null;
+                }
+            });
+            mat.dispose();
+        });
+    }
+
+    // Dispose sprite textures
+    if (obj.isSprite && obj.material?.map) {
+        obj.material.map.dispose();
+        obj.material.dispose();
+    }
+}
+
 export function createPlanetSurface(pData) {
-    // Clear previous
-    while (planetSurfaceGroup.children.length > 0) {
-        const child = planetSurfaceGroup.children[0];
-        planetSurfaceGroup.remove(child);
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-            if (child.material.map) child.material.map.dispose();
-            child.material.dispose();
+    // Deep-dispose previous surface to free GPU memory
+    if (planetSurfaceGroup.children.length > 0) {
+        while (planetSurfaceGroup.children.length > 0) {
+            deepDispose(planetSurfaceGroup.children[0]);
+            planetSurfaceGroup.remove(planetSurfaceGroup.children[0]);
         }
     }
 
     surfaceGroup = new THREE.Group();
 
-    // === USAR TEXTURAS 8K HQ NA SUPERFÍCIE ===
-    const material = createPlanetMaterial(pData, true); // useHQ = true
+    // === USE HQ TEXTURES ONLY ON CAPABLE DEVICES ===
+    const useHQ = USE_HQ_TEXTURES;
+    const segments = EFFECTIVE_SEGMENTS;
+
+    console.log(`[T.A.R.D.I.S.] Surface: ${pData.nameEN} | HQ: ${useHQ} | Segments: ${segments}`);
+
+    const material = createPlanetMaterial(pData, useHQ);
 
     surfaceEarth = new THREE.Mesh(
-        new THREE.SphereGeometry(GLOBE_RADIUS, GLOBE_SEGMENTS, GLOBE_SEGMENTS),
+        new THREE.SphereGeometry(GLOBE_RADIUS, segments, segments),
         material
     );
     surfaceGroup.add(surfaceEarth);
 
-    // Cloud layer (8K HQ)
-    const cloudUrl = pData.cloudTextureHQ || pData.cloudTexture;
+    // Cloud layer
+    const cloudUrl = useHQ
+        ? (pData.cloudTextureHQ || pData.cloudTexture)
+        : pData.cloudTexture;
     if (cloudUrl) {
         const cloudTex = loadTexture(cloudUrl);
         const clouds = new THREE.Mesh(
-            new THREE.SphereGeometry(GLOBE_RADIUS + 0.04, GLOBE_SEGMENTS, GLOBE_SEGMENTS),
+            new THREE.SphereGeometry(GLOBE_RADIUS + 0.04, segments, segments),
             new THREE.MeshPhongMaterial({
                 map: cloudTex,
                 transparent: true,
@@ -74,9 +119,9 @@ export function createPlanetSurface(pData) {
         createLandmarks(surfaceGroup);
     }
 
-    // Saturn ring (8K HQ)
+    // Saturn ring
     if (pData.hasRing) {
-        const ring = createRingMesh(pData, GLOBE_RADIUS, true); // useHQ = true
+        const ring = createRingMesh(pData, GLOBE_RADIUS, useHQ);
         if (ring) surfaceGroup.add(ring);
     }
 
@@ -93,3 +138,8 @@ export function createPlanetSurface(pData) {
 
     planetSurfaceGroup.add(surfaceGroup);
 }
+
+/**
+ * Exported deep dispose for use by main.js during planet transitions.
+ */
+export { deepDispose };

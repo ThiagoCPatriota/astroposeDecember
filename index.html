@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AstroPose v19 - Explore o Sistema Solar com gestos de mão. Texturas 8K + Visão computacional + NASA API.">
-    <title>AstroPose v19 — Solar System</title>
+    <meta name="description" content="T.A.R.D.I.S. — Explore o Sistema Solar com gestos e mouse. Texturas 8K + Visão computacional + NASA API.">
+    <title>T.A.R.D.I.S. — Solar System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -13,8 +13,8 @@
     <!-- Loading Screen -->
     <div id="loading">
         <div class="loading-content">
-            <div class="loading-logo">ASTROPOSE</div>
-            <div class="loading-version">v19 — SOLAR SYSTEM</div>
+            <div class="loading-logo">T.A.R.D.I.S.</div>
+            <div class="loading-version">TIME AND RELATIVE DIMENSION IN SPACE</div>
             <div class="loading-bar"><div class="loading-bar-fill"></div></div>
             <div class="loading-status" id="loading-status">INICIALIZANDO SISTEMAS...</div>
         </div>
@@ -29,7 +29,7 @@
     <div id="ui-layer">
         <!-- Header -->
         <div class="header-bar">
-            <div class="logo">ASTROPOSE <span class="logo-version">v19</span></div>
+            <div class="logo">T.A.R.D.I.S. <span class="logo-version">⚡</span></div>
             <div class="mode-indicator">
                 <span class="mode-dot" id="mode-dot"></span>
                 <span id="current-mode" class="status-neutral">SISTEMA SOLAR</span>
@@ -54,11 +54,14 @@
 
         <!-- Controls Panel -->
         <div id="controls-summary">
-            <div class="control-header">COMANDOS GESTUAIS</div>
+            <div class="control-header">COMANDOS</div>
             <div class="control-item"><span class="control-icon">✊</span><span class="key-desc">PUNHO: Mover</span></div>
             <div class="control-item"><span class="control-icon">✋</span><span class="key-desc">PALMA: Escanear</span></div>
             <div class="control-item"><span class="control-icon">✌️</span><span class="key-desc">PAZ: Zoom (+)</span></div>
             <div class="control-item"><span class="control-icon">☝️</span><span class="key-desc">DEDO 1: Zoom (-)</span></div>
+            <div class="control-divider"></div>
+            <div class="control-item"><span class="control-icon">🖱️</span><span class="key-desc">ARRASTAR: Rotacionar</span></div>
+            <div class="control-item"><span class="control-icon">🔄</span><span class="key-desc">SCROLL: Zoom</span></div>
         </div>
 
         <!-- Planet Info Panel -->

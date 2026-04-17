@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — APOD WIDGET
+// T.A.R.D.I.S. â€” APOD WIDGET
 // ============================================
 import { fetchAPOD } from '../api/nasaApi.js';
 
@@ -10,7 +10,7 @@ export function initAPODWidget() {
     if (toggle && widget) {
         toggle.addEventListener('click', () => {
             widget.classList.toggle('expanded');
-            toggle.textContent = widget.classList.contains('expanded') ? '▼' : '▲';
+            toggle.textContent = widget.classList.contains('expanded') ? 'â–¼' : 'â–²';
 
             const descEl = document.getElementById('apod-description');
             if (widget.classList.contains('expanded') && descEl.dataset.full) {
@@ -44,3 +44,4 @@ export function initAPODWidget() {
     // Load APOD data
     fetchAPOD();
 }
+

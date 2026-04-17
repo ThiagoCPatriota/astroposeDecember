@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — MARCOS HISTÓRICOS NASA
+// T.A.R.D.I.S. — MARCOS HISTÓRICOS NASA
 // ============================================
 
 export const NASA_LANDMARKS = [

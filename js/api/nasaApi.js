@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — NASA APIs
+// T.A.R.D.I.S. — NASA APIs
 // ============================================
 import { NASA_IMAGE_API, NASA_APOD_API } from '../config.js';
 
@@ -88,12 +88,12 @@ export async function fetchAPOD() {
             descEl.dataset.truncated = descEl.textContent;
 
             if (data.copyright) {
-                document.getElementById('apod-copyright').textContent = `© ${data.copyright.trim()}`;
+                document.getElementById('apod-copyright').textContent = `\u00a9 ${data.copyright.trim()}`;
             }
         } else if (data.media_type === 'video') {
             if (loadingEl) loadingEl.style.display = 'none';
             const wrapper = document.getElementById('apod-image-wrapper');
-            wrapper.innerHTML = `<a href="${data.url}" target="_blank" class="apod-video-link">▶ Assistir Vídeo</a>`;
+            wrapper.innerHTML = `<a href="${data.url}" target="_blank" class="apod-video-link">\u25b6 Assistir V\u00eddeo</a>`;
             document.getElementById('apod-title').textContent = data.title || '';
             const desc = data.explanation || '';
             const descEl = document.getElementById('apod-description');
@@ -103,11 +103,11 @@ export async function fetchAPOD() {
         console.error('APOD error:', e);
         if (loadingEl) {
             loadingEl.innerHTML = `
-                <span style="color:#ff9944; font-family: var(--font-display); font-size: 8px; letter-spacing: 1px;">API INDISPONÍVEL</span>
+                <span style="color:#ff9944; font-family: var(--font-display); font-size: 8px; letter-spacing: 1px;">API INDISPON\u00cdVEL</span>
                 <span style="color:#666; font-size: 10px; margin-top: 4px;">Tente novamente mais tarde</span>
             `;
         }
         document.getElementById('apod-title').textContent = 'Astronomy Picture of the Day';
-        document.getElementById('apod-description').textContent = 'A imagem astronômica do dia da NASA não pôde ser carregada.';
+        document.getElementById('apod-description').textContent = 'A imagem astron\u00f4mica do dia da NASA n\u00e3o p\u00f4de ser carregada.';
     }
 }

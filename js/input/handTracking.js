@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — HAND TRACKING (MediaPipe)
+// T.A.R.D.I.S. — HAND TRACKING (MediaPipe)
 // ============================================
 import { ROTATION_SPEED } from '../config.js';
 
@@ -64,14 +64,14 @@ export function initHandTracking() {
         frameCount++;
         if (frameCount % 2 !== 0 && results.multiHandLandmarks?.length > 0) {
             const lm = results.multiHandLandmarks[0];
-            drawConnectors(sCtx, lm, HAND_CONNECTIONS, { color: '#00f2fe', lineWidth: 2 });
+            drawConnectors(sCtx, lm, HAND_CONNECTIONS, { color: '#0095FF', lineWidth: 2 });
             drawLandmarks(sCtx, lm, { color: '#fff', lineWidth: 1, radius: 2 });
             return;
         }
 
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const lm = results.multiHandLandmarks[0];
-            drawConnectors(sCtx, lm, HAND_CONNECTIONS, { color: '#00f2fe', lineWidth: 2 });
+            drawConnectors(sCtx, lm, HAND_CONNECTIONS, { color: '#0095FF', lineWidth: 2 });
             drawLandmarks(sCtx, lm, { color: '#fff', lineWidth: 1, radius: 2 });
 
             const hX = (1 - lm[9].x) * window.innerWidth;
@@ -103,7 +103,7 @@ export function initHandTracking() {
                 isGrabbing = false;
                 isScanning = true;
                 uiLayer.classList.add('scanning');
-                setMode('ESCANEAR ✋', '#00f2fe');
+                setMode('ESCANEAR ✋', '#0095FF');
                 if (callbacks.onScan) callbacks.onScan();
             }
             // PEACE - Zoom In
@@ -134,7 +134,7 @@ export function initHandTracking() {
             uiLayer.classList.remove('scanning');
             isScanning = false;
             isGrabbing = false;
-            setMode('SEM MÃO', '#888');
+            setMode('SEM MÃƒO', '#888');
             if (callbacks.onNoHand) callbacks.onNoHand();
         }
     });

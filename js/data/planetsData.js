@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — DADOS DOS PLANETAS
+// T.A.R.D.I.S. — DADOS DOS PLANETAS
 // ============================================
 import { TEXTURES, TEXTURES_HQ } from '../config.js';
 

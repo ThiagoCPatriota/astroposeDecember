@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — CAMERA CONTROLLER (navegação livre)
+// T.A.R.D.I.S. — CAMERA CONTROLLER (navegação livre)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { camera } from '../scene/setup.js';

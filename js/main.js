@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE v19 — MAIN ENTRY POINT
+// T.A.R.D.I.S. — MAIN ENTRY POINT
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { SceneState } from './config.js';
@@ -8,7 +8,7 @@ import { scene, camera, renderer, solarSystemGroup, planetSurfaceGroup, handleRe
 import { createStarfield } from './scene/starfield.js';
 import { createSolarSystem, planetMeshes } from './scene/solarSystem.js';
 import { animateComets } from './scene/comets.js';
-import { createPlanetSurface } from './planets/planetSurface.js';
+import { createPlanetSurface, deepDispose } from './planets/planetSurface.js';
 import { countryLabelSprites, landmarkMeshes, findNearestLocation, findNearestLandmark, COUNTRY_DB } from './planets/earthFeatures.js';
 import {
     navigateToPlanet, navigateNext, navigatePrev,
@@ -24,6 +24,10 @@ import { initAPODWidget } from './ui/apodWidget.js';
 import { fetchNASAImage } from './api/nasaApi.js';
 import { initHandTracking, setHandCallbacks, isScanning } from './input/handTracking.js';
 import { initKeyboardControls, setKeyboardCallbacks } from './input/keyboard.js';
+import { initMouseControls, setMouseCallbacks } from './input/mouseControls.js';
+
+// --- MOUSE ZOOM ---
+const MOUSE_ZOOM_STEP = 2.0;
 
 // --- APP STATE ---
 let currentState = SceneState.SOLAR_SYSTEM;
@@ -86,9 +90,10 @@ function exitPlanet() {
         solarSystemGroup.visible = true;
         planetSurfaceGroup.visible = false;
 
-        // Dispose surface resources
+        // Dispose surface resources (prevents WebGL memory leak)
         while (planetSurfaceGroup.children.length > 0) {
             const child = planetSurfaceGroup.children[0];
+            deepDispose(child);
             planetSurfaceGroup.remove(child);
         }
         COUNTRY_DB.length = 0;
@@ -206,6 +211,34 @@ setKeyboardCallbacks({
         if (isTransitioning) return;
         if (currentState === SceneState.PLANET_SURFACE) {
             exitPlanet();
+        }
+    }
+});
+
+// --- WIRE UP MOUSE CALLBACKS ---
+setMouseCallbacks({
+    onMove: (dx, dy) => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            rotateSolarCamera(dx, dy);
+        } else {
+            rotateSurfaceCamera(dx, dy);
+        }
+    },
+    onZoomIn: () => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            zoomIn(MOUSE_ZOOM_STEP);
+        } else {
+            zoomSurfaceIn(0.05);
+        }
+    },
+    onZoomOut: () => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            zoomOut(MOUSE_ZOOM_STEP);
+        } else {
+            zoomSurfaceOut(0.05);
+            if (targetSurfaceScale <= 0.35) {
+                exitPlanet();
+            }
         }
     }
 });
@@ -380,6 +413,7 @@ async function init() {
     // Init input
     initHandTracking();
     initKeyboardControls();
+    initMouseControls();
 
     // Set initial breadcrumb
     updateBreadcrumb(SceneState.SOLAR_SYSTEM);

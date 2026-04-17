@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — STARFIELD
+// T.A.R.D.I.S. â€” STARFIELD
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { scene } from './setup.js';
@@ -32,3 +32,4 @@ export function createStarfield() {
     scene.add(stars);
     return stars;
 }
+

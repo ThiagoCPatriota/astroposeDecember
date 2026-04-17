@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — TEXTURE LOADING (Solar System Scope)
+// T.A.R.D.I.S. â€” TEXTURE LOADING (Solar System Scope)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { texLoader } from '../scene/setup.js';
@@ -14,11 +14,11 @@ export function loadTexture(url, fallbackColor = 0x888888) {
     const tex = texLoader.load(
         url,
         (loaded) => {
-            console.log(`✓ Texture loaded: ${url.split('/').pop()}`);
+            console.log(`âœ“ Texture loaded: ${url.split('/').pop()}`);
         },
         undefined,
         (err) => {
-            console.warn(`✗ Texture failed: ${url.split('/').pop()}`);
+            console.warn(`âœ— Texture failed: ${url.split('/').pop()}`);
         }
     );
     tex.encoding = THREE.sRGBEncoding;
@@ -35,7 +35,7 @@ export function createPlanetMaterial(pData, useHQ = false) {
     const textureUrl = (useHQ && pData.textureHQ) ? pData.textureHQ : pData.texture;
 
     if (pData.isStar) {
-        // Sun — emissive material with texture
+        // Sun â€” emissive material with texture
         const sunTex = loadTexture(textureUrl);
         return new THREE.MeshBasicMaterial({
             map: sunTex,
@@ -135,3 +135,4 @@ export function createRingMesh(pData, radius, useHQ = false) {
     ring.rotation.x = Math.PI / 2.5;
     return ring;
 }
+

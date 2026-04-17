@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — CONFIGURAÇÃO GLOBAL
+// T.A.R.D.I.S. — CONFIGURAÇÃO GLOBAL
 // ============================================
 
 // --- API KEY ---
@@ -64,3 +64,45 @@ export const SceneState = {
     SOLAR_SYSTEM: 'SOLAR_SYSTEM',
     PLANET_SURFACE: 'PLANET_SURFACE'
 };
+
+// --- DEVICE DETECTION ---
+function isMobileDevice() {
+    // Check user agent
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Check screen dimensions
+    const smallScreen = window.innerWidth <= 768 || window.innerHeight <= 600;
+
+    // Check touch capability
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    // Check WebGL max texture size (low-end GPUs cap at 4096)
+    let lowGPU = false;
+    try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        if (gl) {
+            const maxTexSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+            lowGPU = maxTexSize < 8192;
+            // Also check available memory via WEBGL_debug_renderer_info
+            const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+            if (debugInfo) {
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                console.log('[T.A.R.D.I.S.] GPU:', renderer, '| Max Texture:', maxTexSize);
+            }
+            c.remove();
+        }
+    } catch (e) { /* ignore */ }
+
+    return (mobileUA && hasTouch) || (smallScreen && hasTouch) || lowGPU;
+}
+
+export const IS_MOBILE = isMobileDevice();
+export const USE_HQ_TEXTURES = !IS_MOBILE;
+
+// Log detection result
+console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | HQ Textures: ${USE_HQ_TEXTURES ? 'ON' : 'OFF'}`);
+
+// --- PERFORMANCE ---
+export const GLOBE_SEGMENTS_MOBILE = 32;
+export const EFFECTIVE_SEGMENTS = IS_MOBILE ? GLOBE_SEGMENTS_MOBILE : GLOBE_SEGMENTS;

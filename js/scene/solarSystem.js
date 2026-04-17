@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — SOLAR SYSTEM BUILDER
+// T.A.R.D.I.S. â€” SOLAR SYSTEM BUILDER
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { solarSystemGroup, sharedSphereGeo } from './setup.js';
@@ -48,7 +48,7 @@ export function createSolarSystem() {
         mesh.material = material;
 
         if (pData.isStar) {
-            // Sun — multi-layer glow
+            // Sun â€” multi-layer glow
             const glowLayers = [
                 { scale: 1.15, color: 0xffcc44, opacity: 0.12 },
                 { scale: 1.35, color: 0xff8800, opacity: 0.06 },
@@ -162,3 +162,4 @@ export function createSolarSystem() {
     // Create comets
     createAllComets();
 }
+

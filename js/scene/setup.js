@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — THREE.JS SCENE SETUP
+// T.A.R.D.I.S. — THREE.JS SCENE SETUP
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { GLOBE_SEGMENTS } from '../config.js';

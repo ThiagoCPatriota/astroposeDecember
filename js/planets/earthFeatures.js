@@ -1,5 +1,5 @@
 // ============================================
-// ASTROPOSE — EARTH FEATURES (borders, landmarks)
+// T.A.R.D.I.S. — EARTH FEATURES (borders, landmarks)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { GLOBE_RADIUS } from '../config.js';
@@ -54,9 +54,9 @@ export async function loadEarthBorders(group) {
         const geojson = await res.json();
 
         const borderMaterial = new THREE.LineBasicMaterial({
-            color: 0x00f2fe,
+            color: 0x003B6F,
             transparent: true,
-            opacity: 0.4
+            opacity: 0.5
         });
 
         countryLabelSprites = [];

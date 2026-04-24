@@ -32,6 +32,11 @@ body {
     font-family: var(--font-body);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    /* Mobile: prevent pull-to-refresh, overscroll bounce, and browser zoom */
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* --- VIDEO & CANVAS --- */
@@ -47,6 +52,12 @@ body {
 #output_canvas {
     position: absolute; top: 0; left: 0;
     z-index: 1; pointer-events: none;
+    /* Mobile: prevent browser's default touch behaviors (scroll, pinch-zoom)
+       so our custom touch controls work without interference */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 #skeleton_canvas {

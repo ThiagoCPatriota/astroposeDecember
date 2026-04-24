@@ -1,9 +1,10 @@
 // ============================================
-// T.A.R.D.I.S. â€” SOLAR SYSTEM BUILDER
+// T.A.R.D.I.S. — SOLAR SYSTEM BUILDER (Performance-Optimized)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { solarSystemGroup, sharedSphereGeo } from './setup.js';
 import { PLANETS_DATA } from '../data/planetsData.js';
+import { MAX_GLOW_LAYERS, ATMOSPHERE_ENABLED, IS_MOBILE } from '../config.js';
 import { createPlanetMaterial, createCloudMesh, createRingMesh } from '../planets/textures.js';
 import { createAllComets } from './comets.js';
 
@@ -39,23 +40,27 @@ export function createSolarSystem() {
     const loadingStatus = document.getElementById('loading-status');
     if (loadingStatus) loadingStatus.textContent = 'CONSTRUINDO SISTEMA SOLAR...';
 
+    // All glow layer configs — we'll use only MAX_GLOW_LAYERS of them on mobile
+    const glowLayerConfigs = [
+        { scale: 1.15, color: 0xffcc44, opacity: 0.12 },
+        { scale: 1.35, color: 0xff8800, opacity: 0.06 },
+        { scale: 1.6, color: 0xff4400, opacity: 0.03 }
+    ];
+
     PLANETS_DATA.forEach((pData, index) => {
         const mesh = new THREE.Mesh(sharedSphereGeo.clone());
         mesh.scale.set(pData.radius, pData.radius, pData.radius);
 
-        // Material from 8K textures
+        // Material from textures
         const material = createPlanetMaterial(pData);
         mesh.material = material;
 
         if (pData.isStar) {
-            // Sun â€” multi-layer glow
-            const glowLayers = [
-                { scale: 1.15, color: 0xffcc44, opacity: 0.12 },
-                { scale: 1.35, color: 0xff8800, opacity: 0.06 },
-                { scale: 1.6, color: 0xff4400, opacity: 0.03 }
-            ];
+            // Sun — multi-layer glow (reduced on mobile to cut overdraw)
             const glows = [];
-            glowLayers.forEach(gl => {
+            const layerCount = Math.min(MAX_GLOW_LAYERS, glowLayerConfigs.length);
+            for (let i = 0; i < layerCount; i++) {
+                const gl = glowLayerConfigs[i];
                 const glowMesh = new THREE.Mesh(
                     new THREE.SphereGeometry(1, 32, 32),
                     new THREE.MeshBasicMaterial({
@@ -72,13 +77,13 @@ export function createSolarSystem() {
                 );
                 solarSystemGroup.add(glowMesh);
                 glows.push(glowMesh);
-            });
+            }
             mesh.userData.glows = glows;
             mesh.userData.glow = glows[0];
 
         } else {
-            // --- ATMOSPHERE GLOW ---
-            if (pData.atmosphereColor) {
+            // --- ATMOSPHERE GLOW (skipped on mobile to eliminate overdraw) ---
+            if (pData.atmosphereColor && ATMOSPHERE_ENABLED) {
                 const atmoScale = pData.atmosphereScale || 1.06;
                 const atmoGeo = new THREE.SphereGeometry(1, 32, 32);
                 const atmoMat = new THREE.MeshBasicMaterial({
@@ -97,14 +102,19 @@ export function createSolarSystem() {
                 mesh.userData.atmosphere = atmosphere;
             }
 
-            // --- CLOUDS (from 8K textures) ---
+            // --- CLOUDS (from textures) ---
+            // On mobile: use NormalBlending to reduce overdraw cost
             const cloudMesh = createCloudMesh(pData, pData.radius, sharedSphereGeo);
             if (cloudMesh) {
+                if (IS_MOBILE) {
+                    cloudMesh.material.blending = THREE.NormalBlending;
+                    cloudMesh.material.opacity = Math.min(cloudMesh.material.opacity, 0.3);
+                }
                 mesh.add(cloudMesh);
                 mesh.userData.clouds = cloudMesh;
             }
 
-            // --- SATURN RING (from 8K texture) ---
+            // --- SATURN RING ---
             if (pData.hasRing) {
                 const ring = createRingMesh(pData, pData.radius);
                 if (ring) {
@@ -162,4 +172,3 @@ export function createSolarSystem() {
     // Create comets
     createAllComets();
 }
-

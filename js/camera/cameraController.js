@@ -6,6 +6,11 @@ import { camera } from '../scene/setup.js';
 import { planetMeshes } from '../scene/solarSystem.js';
 import { PLANETS_DATA } from '../data/planetsData.js';
 
+// --- Pre-allocated vectors (ZERO garbage collection in the render loop) ---
+// These are reused every frame instead of creating new objects.
+const _targetCamPos = new THREE.Vector3();
+const _focusPos = new THREE.Vector3();
+
 // --- Camera State ---
 export let cameraTargetIndex = 0; // Index into PLANETS_DATA — the planet the camera focuses on
 export let solarRotY = 0;
@@ -18,16 +23,20 @@ let cameraFocusActual = new THREE.Vector3(0, 0, 0);
 
 /**
  * Gets the current world position of the focused planet.
+ * OPTIMIZED: Reuses _focusPos instead of allocating new Vector3 each frame.
  */
 export function getFocusedPlanetPosition() {
     if (cameraTargetIndex < 0 || cameraTargetIndex >= planetMeshes.length) {
-        return new THREE.Vector3(0, 0, 0);
+        _focusPos.set(0, 0, 0);
+        return _focusPos;
     }
     const mesh = planetMeshes[cameraTargetIndex];
-    if (!mesh) return new THREE.Vector3(0, 0, 0);
-    const pos = new THREE.Vector3();
-    pos.setFromMatrixPosition(mesh.matrixWorld);
-    return pos;
+    if (!mesh) {
+        _focusPos.set(0, 0, 0);
+        return _focusPos;
+    }
+    _focusPos.setFromMatrixPosition(mesh.matrixWorld);
+    return _focusPos;
 }
 
 /**
@@ -54,6 +63,7 @@ export function getFocusedPlanetData() {
 /**
  * Updates camera position based on orbital parameters.
  * Called every frame from animate loop.
+ * OPTIMIZED: Uses pre-allocated _targetCamPos instead of new THREE.Vector3().
  */
 export function updateSolarCamera() {
     // Smoothly move focus target to selected planet position
@@ -65,7 +75,9 @@ export function updateSolarCamera() {
     const camY = cameraFocusActual.y + Math.sin(solarRotX) * solarDistance * 0.5;
     const camZ = cameraFocusActual.z + Math.cos(solarRotY) * solarDistance * Math.cos(solarRotX);
 
-    camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.06);
+    // Reuse pre-allocated vector instead of new THREE.Vector3(camX, camY, camZ)
+    _targetCamPos.set(camX, camY, camZ);
+    camera.position.lerp(_targetCamPos, 0.06);
     camera.lookAt(cameraFocusActual);
 }
 

@@ -1,8 +1,8 @@
 // ============================================
-// T.A.R.D.I.S. — PLANET SURFACE VIEW (8K HQ)
+// T.A.R.D.I.S. — PLANET SURFACE VIEW (Performance-Optimized)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-import { GLOBE_RADIUS, EFFECTIVE_SEGMENTS, USE_HQ_TEXTURES } from '../config.js';
+import { GLOBE_RADIUS, EFFECTIVE_SEGMENTS, USE_HQ_TEXTURES, IS_MOBILE, ATMOSPHERE_ENABLED } from '../config.js';
 import { planetSurfaceGroup } from '../scene/setup.js';
 import { createPlanetMaterial, createRingMesh, loadTexture } from './textures.js';
 import { loadEarthBorders, createLandmarks } from './earthFeatures.js';
@@ -66,7 +66,7 @@ export function createPlanetSurface(pData) {
     const useHQ = USE_HQ_TEXTURES;
     const segments = EFFECTIVE_SEGMENTS;
 
-    console.log(`[T.A.R.D.I.S.] Surface: ${pData.nameEN} | HQ: ${useHQ} | Segments: ${segments}`);
+    console.log(`[T.A.R.D.I.S.] Surface: ${pData.nameEN} | HQ: ${useHQ} | Segments: ${segments} | Mobile: ${IS_MOBILE}`);
 
     const material = createPlanetMaterial(pData, useHQ);
 
@@ -88,19 +88,28 @@ export function createPlanetSurface(pData) {
                 map: cloudTex,
                 transparent: true,
                 opacity: pData.planetType === 'venus' ? 0.7 : 0.5,
-                blending: THREE.AdditiveBlending,
+                // MOBILE: NormalBlending (cheaper) instead of AdditiveBlending (overdraw killer)
+                blending: IS_MOBILE ? THREE.NormalBlending : THREE.AdditiveBlending,
                 side: THREE.DoubleSide,
                 depthWrite: false
             })
         );
+
+        // On mobile, reduce cloud opacity to compensate for NormalBlending look
+        if (IS_MOBILE) {
+            clouds.material.opacity = Math.min(clouds.material.opacity, 0.35);
+        }
+
         surfaceGroup.add(clouds);
         surfaceGroup.userData.clouds = clouds;
     }
 
-    // Atmosphere glow
-    if (pData.atmosphereColor && !pData.isStar) {
+    // Atmosphere glow — SKIPPED on mobile to reduce overdraw
+    if (pData.atmosphereColor && !pData.isStar && ATMOSPHERE_ENABLED) {
+        // Reduced segments on atmosphere sphere (24 vs 48 — invisible difference)
+        const atmoSegments = IS_MOBILE ? 24 : 48;
         const atmoScale = pData.atmosphereScale || 1.06;
-        const atmoGeo = new THREE.SphereGeometry(GLOBE_RADIUS * atmoScale, 48, 48);
+        const atmoGeo = new THREE.SphereGeometry(GLOBE_RADIUS * atmoScale, atmoSegments, atmoSegments);
         const atmoMat = new THREE.MeshBasicMaterial({
             color: pData.atmosphereColor,
             transparent: true,

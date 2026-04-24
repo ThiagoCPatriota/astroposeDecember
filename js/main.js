@@ -1,8 +1,8 @@
 // ============================================
-// T.A.R.D.I.S. — MAIN ENTRY POINT
+// T.A.R.D.I.S. — MAIN ENTRY POINT (Performance-Optimized)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
-import { SceneState } from './config.js';
+import { SceneState, IS_MOBILE, ATMOSPHERE_ENABLED } from './config.js';
 import { PLANETS_DATA } from './data/planetsData.js';
 import { scene, camera, renderer, solarSystemGroup, planetSurfaceGroup, handleResize } from './scene/setup.js';
 import { createStarfield } from './scene/starfield.js';
@@ -25,6 +25,7 @@ import { fetchNASAImage } from './api/nasaApi.js';
 import { initHandTracking, setHandCallbacks, isScanning } from './input/handTracking.js';
 import { initKeyboardControls, setKeyboardCallbacks } from './input/keyboard.js';
 import { initMouseControls, setMouseCallbacks } from './input/mouseControls.js';
+import { initTouchControls, setTouchCallbacks } from './input/touchControls.js';
 
 // --- MOUSE ZOOM ---
 const MOUSE_ZOOM_STEP = 2.0;
@@ -43,6 +44,13 @@ const bcSolar = document.getElementById('bc-solar');
 const bcPlanet = document.getElementById('bc-planet');
 const bcSurface = document.getElementById('bc-surface');
 const transitionOverlay = document.getElementById('transition-overlay');
+
+// --- PRE-ALLOCATED VECTORS (Zero GC in render loop) ---
+// These are reused every frame instead of creating new objects.
+const _tempVec = new THREE.Vector3();
+const _frustum = new THREE.Frustum();
+const _projScreenMatrix = new THREE.Matrix4();
+const _boundingSphere = new THREE.Sphere();
 
 // --- STARFIELD ---
 const starfield = createStarfield();
@@ -121,16 +129,16 @@ function updateBreadcrumb(state) {
 }
 
 // --- SCANNING ---
+// OPTIMIZED: Reuses _tempVec instead of creating new THREE.Vector3() each frame
 function findNearestPlanetToCamera() {
     let closest = null;
     let minDist = Infinity;
-    const tempVec = new THREE.Vector3();
 
     planetMeshes.forEach(mesh => {
-        tempVec.setFromMatrixPosition(mesh.matrixWorld);
-        tempVec.project(camera);
-        if (tempVec.z > 1) return;
-        const dist = Math.sqrt(tempVec.x * tempVec.x + tempVec.y * tempVec.y);
+        _tempVec.setFromMatrixPosition(mesh.matrixWorld);
+        _tempVec.project(camera);
+        if (_tempVec.z > 1) return;
+        const dist = Math.sqrt(_tempVec.x * _tempVec.x + _tempVec.y * _tempVec.y);
         if (dist < minDist) {
             minDist = dist;
             closest = mesh;
@@ -243,6 +251,64 @@ setMouseCallbacks({
     }
 });
 
+// --- WIRE UP TOUCH CALLBACKS ---
+setTouchCallbacks({
+    onMove: (dx, dy) => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            rotateSolarCamera(dx, dy);
+        } else {
+            rotateSurfaceCamera(dx, dy);
+        }
+    },
+    onZoomIn: () => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            zoomIn(MOUSE_ZOOM_STEP);
+        } else {
+            zoomSurfaceIn(0.05);
+        }
+    },
+    onZoomOut: () => {
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            zoomOut(MOUSE_ZOOM_STEP);
+        } else {
+            zoomSurfaceOut(0.05);
+            if (targetSurfaceScale <= 0.35) {
+                exitPlanet();
+            }
+        }
+    },
+    onTap: (x, y) => {
+        // Tap on mobile = try to select a planet or enter it
+        if (isTransitioning) return;
+        if (currentState === SceneState.SOLAR_SYSTEM) {
+            // Raycast to find tapped planet
+            const rect = renderer.domElement.getBoundingClientRect();
+            _tempVec.set(
+                ((x - rect.left) / rect.width) * 2 - 1,
+                -((y - rect.top) / rect.height) * 2 + 1,
+                0.5
+            );
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(_tempVec, camera);
+            const intersects = raycaster.intersectObjects(planetMeshes, false);
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                const pData = hit.userData.planetData;
+                const pIndex = hit.userData.planetIndex;
+                if (pData) {
+                    selectedPlanet = pData;
+                    selectedPlanetIndex = pIndex;
+                    navigateToPlanet(pIndex);
+                    showPlanetInfo(pData);
+                    highlightPlanetSelector(pIndex);
+                    // Enter planet on tap
+                    enterPlanet(pData);
+                }
+            }
+        }
+    }
+});
+
 // --- ANIMATION LOOP ---
 let prevTime = performance.now();
 
@@ -264,9 +330,17 @@ function animate() {
 function animateSolarSystem(delta) {
     const time = performance.now() * 0.001;
 
+    // --- FRUSTUM CULLING SETUP ---
+    // Build the view frustum from the camera's projection + world matrices.
+    // Objects outside this frustum are invisible — skip their visual updates.
+    _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    _frustum.setFromProjectionMatrix(_projScreenMatrix);
+
     planetMeshes.forEach(mesh => {
         const pData = mesh.userData.planetData;
+
         if (pData.isStar) {
+            // Sun is always at origin and always visible
             mesh.rotation.y += 0.001;
             if (mesh.userData.glows) {
                 mesh.userData.glows.forEach((glow, i) => {
@@ -282,16 +356,32 @@ function animateSolarSystem(delta) {
                 });
             }
         } else {
+            // --- ORBITAL POSITION (always update, needed for navigation) ---
             const angle = time * pData.speed + (pData.orbitOffset || 0);
             mesh.position.x = Math.cos(angle) * pData.distance;
             mesh.position.z = Math.sin(angle) * pData.distance;
 
+            // --- FRUSTUM CULLING CHECK ---
+            // Build a bounding sphere for this planet and test against the frustum.
+            // If the planet is outside the view, skip all visual updates (rotation,
+            // clouds, atmosphere shimmer). The position update above is still needed
+            // so the orbit is correct when the planet scrolls back into view.
+            _boundingSphere.center.copy(mesh.position);
+            _boundingSphere.radius = pData.radius * 3; // generous margin
+            if (!_frustum.intersectsSphere(_boundingSphere)) {
+                mesh.visible = false;
+                return; // Skip all visual work for this planet
+            }
+            mesh.visible = true;
+
+            // --- VISUAL UPDATES (only for visible planets) ---
             if (pData.tilt) mesh.rotation.z = pData.tilt;
             mesh.rotation.y += 0.005;
 
             if (mesh.userData.clouds) mesh.userData.clouds.rotation.y += 0.002;
 
-            if (mesh.userData.atmosphere) {
+            // Atmosphere shimmer — only on desktop (ATMOSPHERE_ENABLED)
+            if (mesh.userData.atmosphere && ATMOSPHERE_ENABLED) {
                 const shimmer = 1 + Math.sin(time * 1.5 + pData.distance) * 0.015;
                 const atmoScale = (pData.atmosphereScale || 1.06) * shimmer;
                 mesh.userData.atmosphere.scale.set(
@@ -410,13 +500,17 @@ async function init() {
     initPlanetDetailEvents();
     initAPODWidget();
 
-    // Init input
-    initHandTracking();
-    initKeyboardControls();
-    initMouseControls();
+    // Init input — all three input methods coexist seamlessly
+    initHandTracking();     // Disabled on mobile via MEDIAPIPE_ENABLED flag
+    initKeyboardControls(); // Always active (external keyboards on tablets)
+    initMouseControls();    // Active on desktop
+    initTouchControls();    // Active on touch devices
 
     // Set initial breadcrumb
     updateBreadcrumb(SceneState.SOLAR_SYSTEM);
+
+    // Log device info
+    console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | Touch: ${initTouchControls ? 'ENABLED' : 'DISABLED'}`);
 
     // Loading timeout
     setTimeout(() => {

@@ -1,11 +1,13 @@
 // ============================================
-// T.A.R.D.I.S. â€” STARFIELD
+// T.A.R.D.I.S. — STARFIELD (Performance-Optimized)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { scene } from './setup.js';
+import { STAR_COUNT } from '../config.js';
 
 export function createStarfield() {
-    const starCount = 3000;
+    // STAR_COUNT is 1500 on mobile, 3000 on desktop (from config.js)
+    const starCount = STAR_COUNT;
     const positions = new Float32Array(starCount * 3);
     const sizes = new Float32Array(starCount);
     for (let i = 0; i < starCount; i++) {
@@ -32,4 +34,3 @@ export function createStarfield() {
     scene.add(stars);
     return stars;
 }
-

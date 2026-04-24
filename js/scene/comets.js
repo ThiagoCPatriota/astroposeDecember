@@ -1,11 +1,15 @@
 // ============================================
-// T.A.R.D.I.S. â€” COMETS
+// T.A.R.D.I.S. — COMETS (Performance-Optimized)
 // ============================================
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 import { solarSystemGroup } from './setup.js';
+import { COMET_COUNT, COMET_TAIL_PARTICLES } from '../config.js';
 
 const comets = [];
-const COMET_COUNT = 5;
+
+// Pre-allocated vector — reused every frame instead of .clone().normalize()
+const _cometDir = new THREE.Vector3();
+const _cometLookAt = new THREE.Vector3();
 
 function createComet() {
     const group = new THREE.Group();
@@ -31,8 +35,8 @@ function createComet() {
     const coma = new THREE.Mesh(comaGeo, comaMat);
     group.add(coma);
 
-    // Dust tail (particle trail)
-    const tailParticleCount = 200;
+    // Dust tail (particle trail) — count from config (mobile: 80, desktop: 200)
+    const tailParticleCount = COMET_TAIL_PARTICLES;
     const tailPositions = new Float32Array(tailParticleCount * 3);
     const tailColors = new Float32Array(tailParticleCount * 3);
     const tailSizes = new Float32Array(tailParticleCount);
@@ -104,6 +108,7 @@ function createComet() {
 }
 
 export function createAllComets() {
+    // COMET_COUNT is 2 on mobile, 5 on desktop (from config.js)
     for (let i = 0; i < COMET_COUNT; i++) {
         createComet();
     }
@@ -126,12 +131,14 @@ export function animateComets(time) {
             x * sinR + z * cosR
         );
 
-        const dir = comet.group.position.clone().normalize();
-        comet.group.lookAt(
-            comet.group.position.x + dir.x,
-            comet.group.position.y + dir.y,
-            comet.group.position.z + dir.z
+        // OPTIMIZED: reuse pre-allocated vectors instead of .clone().normalize()
+        _cometDir.copy(comet.group.position).normalize();
+        _cometLookAt.set(
+            comet.group.position.x + _cometDir.x,
+            comet.group.position.y + _cometDir.y,
+            comet.group.position.z + _cometDir.z
         );
+        comet.group.lookAt(_cometLookAt);
 
         const dist = comet.group.position.length();
         const brightness = Math.min(1, 50 / dist);
@@ -143,4 +150,3 @@ export function animateComets(time) {
         comet.coma.scale.set(pulse, pulse, pulse);
     });
 }
-

@@ -1,7 +1,7 @@
 // ============================================
 // T.A.R.D.I.S. — HAND TRACKING (MediaPipe)
 // ============================================
-import { ROTATION_SPEED } from '../config.js';
+import { ROTATION_SPEED, MEDIAPIPE_ENABLED, MEDIAPIPE_CAMERA_RES } from '../config.js';
 
 let isGrabbing = false;
 let lastHandPos = { x: 0, y: 0 };
@@ -39,6 +39,17 @@ function setMode(text, color) {
 }
 
 export function initHandTracking() {
+    // --- MOBILE GUARD ---
+    // MediaPipe Hands consumes 30-50% CPU (ML model per camera frame).
+    // On mobile this alone drops FPS from 60 → 15. Disable entirely.
+    if (!MEDIAPIPE_ENABLED) {
+        const loadingScreen = document.getElementById('loading');
+        if (loadingScreen) loadingScreen.style.display = 'none';
+        console.log('[T.A.R.D.I.S.] Hand tracking DISABLED (mobile device detected)');
+        setMode('TOUCH MODE', '#22c55e');
+        return;
+    }
+
     const skeletonCanvasEl = document.getElementById('skeleton_canvas');
     const sCtx = skeletonCanvasEl.getContext('2d');
     skeletonCanvasEl.width = window.innerWidth;
@@ -134,18 +145,18 @@ export function initHandTracking() {
             uiLayer.classList.remove('scanning');
             isScanning = false;
             isGrabbing = false;
-            setMode('SEM MÃƒO', '#888');
+            setMode('SEM MÃO', '#888');
             if (callbacks.onNoHand) callbacks.onNoHand();
         }
     });
 
-    // Start camera
+    // Start camera with configured resolution
     const cam = new Camera(document.getElementById('input_video'), {
         onFrame: async () => {
             await hands.send({ image: document.getElementById('input_video') });
         },
-        width: 1280,
-        height: 720
+        width: MEDIAPIPE_CAMERA_RES.width,
+        height: MEDIAPIPE_CAMERA_RES.height
     });
     cam.start();
 

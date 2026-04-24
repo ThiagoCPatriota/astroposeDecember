@@ -106,3 +106,21 @@ console.log(`[T.A.R.D.I.S.] Device: ${IS_MOBILE ? 'MOBILE' : 'DESKTOP'} | HQ Tex
 // --- PERFORMANCE ---
 export const GLOBE_SEGMENTS_MOBILE = 32;
 export const EFFECTIVE_SEGMENTS = IS_MOBILE ? GLOBE_SEGMENTS_MOBILE : GLOBE_SEGMENTS;
+
+// --- MOBILE PERFORMANCE TUNING ---
+// Max glow layers on the Sun (desktop: 3, mobile: 1 to reduce overdraw)
+export const MAX_GLOW_LAYERS = IS_MOBILE ? 1 : 3;
+// Atmosphere shells on planets (disabled on mobile to cut fill-rate)
+export const ATMOSPHERE_ENABLED = !IS_MOBILE;
+// Comet count (desktop: 5, mobile: 2)
+export const COMET_COUNT = IS_MOBILE ? 2 : 5;
+// Tail particle count per comet (desktop: 200, mobile: 80)
+export const COMET_TAIL_PARTICLES = IS_MOBILE ? 80 : 200;
+// Star count (desktop: 3000, mobile: 1500)
+export const STAR_COUNT = IS_MOBILE ? 1500 : 3000;
+// MediaPipe hand tracking on mobile (disabled — saves 30-50% CPU)
+export const MEDIAPIPE_ENABLED = !IS_MOBILE;
+// Camera resolution for MediaPipe (lower on mobile if ever re-enabled)
+export const MEDIAPIPE_CAMERA_RES = IS_MOBILE
+    ? { width: 640, height: 480 }
+    : { width: 1280, height: 720 };
